@@ -1,1 +1,2 @@
-
+NeroFit UI Idea:
+I want NeroFit to feel fresh and easy to use, with a green-and-black vibe that screams health and tech. The main screen’s like a dashboard showing your challenges, how many FIT tokens you’ve got, and who’s killing it on the leaderboard. There’s a page for picking challenges, with little progress bars and maybe a note about who’s sponsoring it, like a gym. The wallet part shows your tokens and lets you claim rewards with one tap—no complicated stuff. Big buttons and clear text make it great for everyone, even my grandma. It’s gotta look as smooth as Strava but with that Web3 twist.
