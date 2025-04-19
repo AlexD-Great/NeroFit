@@ -1,1 +1,7 @@
-
+NeroFit User Flow:
+1. Grab the NeroFit app and sign in with a wallet—it’s super quick thanks to Paymaster.
+2. Connect your Fitbit or whatever you use to track runs or workouts.
+3. Check out challenges, like “Run 5km” or “Do yoga twice this week,” from friends or even a gym nearby.
+4. Finish your challenge. Your wearable says, “Yup, you did it!”
+5. Score FIT tokens without paying any fees—Paymaster’s got you covered.
+6. Show off your win on a leaderboard or challenge your buddy to beat you next time.
