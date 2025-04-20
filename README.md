@@ -25,17 +25,17 @@ Here’s what using NeroFit would be like:
 It’s straightforward, right? That’s the point—make it so easy my mom could use it.
 
 ## Why It Matters
-I came up with NeroFit because I love fitness but hate how Web3 stuff feels out of reach for most people. This app changes that. It’s for anyone who wants to stay active, feel part of a community, and maybe earn a little something extra. By using NERO Chain, we’re not just building an app—we’re inviting everyone to Web3, one workout at a time. Plus, it’s a win for NERO’s ecosystem, bringing in new users who might stick around for other projects.
+I came up with NeroFit because I love fitness and want to see Web3 open up to more people. This app does that by focusing on folks who just want to stay active and feel part of a community, not mess with complicated tech. By building on NERO Chain, we’re not just making an app—we’re inviting everyone to Web3, one workout at a time. It’s also a great way to bring new users to NERO’s ecosystem, which I think is pretty cool.
 
 ## How It’ll Come Together (Tech Vision)
-I’m not a coder, so this is my big-picture plan for now:
+Here’s my big-picture plan for how NeroFit would work:
 - **Smart contracts** on NERO Chain to handle challenges, tokens, and leaderboards.
-- **Paymaster** to manage fees and make everything user-friendly.
-- **App interface** that looks clean and modern, built with something like React later on.
+- **Paymaster** to manage fees and keep things user-friendly.
+- **App interface** that looks clean and modern, built with something like React.
 - **Wearable connections** to pull in data from Fitbit or Strava.
-- A backend to tie it all together, which I’ll figure out with help in Wave 2.
+- A backend to tie it all together, which I’ll work on with a team in Wave 2.
 
-It’s a starting point, but I think it’s doable with the right team down the line.
+It’s a starting point, and I’m excited to bring this to life with the right support.
 
 ## What’s Next (Roadmap)
 This is just the beginning! Here’s where I see NeroFit going:
@@ -56,6 +56,8 @@ To make NeroFit pop, I’d:
 
 This isn’t just about the app—it’s about building a movement that gets people excited about NERO Chain.
 
+## About Me
+I’m a solo founder with a big passion for fitness and Web3. I’ve always loved how exercise brings people together, and I see NeroFit as a way to do that in a fresh, techy way. With Wave 1 grants, I plan to bring on a small team to help turn this vision into reality for Wave 2 and beyond.
 
 ## Why NeroFit Rocks
 NeroFit isn’t just another app—it’s a way to make Web3 feel like home for anyone who loves to move. With Paymaster, it’s as easy as any fitness tracker, but with the bonus of tokens and community vibes. I can’t wait to see where this goes, and I hope you’re as stoked about it as I am!
