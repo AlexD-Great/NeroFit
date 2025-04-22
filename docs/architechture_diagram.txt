@@ -1,0 +1,15 @@
+NeroFit Tech Setup (Quick Sketch):  
+
+[You]  
+   ↓  
+[Phone App (React Native)] → [Backend (Node.js)] → [NERO Chain Contracts]  
+   ↓                          ↓                      ↓  
+[Fitbit/Strava APIs]      [AI (TensorFlow.js)]    [Paymaster (UserOp SDK)]  
+(or manual entry)         (personalized stuff)     (no fees for you)  
+
+How It Flows:  
+1. You use the app on your phone.  
+2. App grabs your workout from Fitbit or lets you log it manually.  
+3. Backend uses AI to suggest challenges that fit you.  
+4. Contracts on NERO Chain check your progress and give you tokens.  
+5. Paymaster makes sure you don’t pay fees—gyms cover it.
