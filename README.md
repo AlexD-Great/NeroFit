@@ -39,6 +39,9 @@ Here’s my plan for how NeroFit will work:
 
 I’ve got a little diagram in `docs/architecture_diagram.txt` to show how it all connects. It’s a solid setup that can grow with each wave.  
 
+## A Peek at the Code  
+I’ve thrown in some code snippets to show how NeroFit might come together—check them out in `docs/code_snippets/`. There’s a smart contract for handling challenges and tokens, a bit of Paymaster stuff for gas-free transactions, a React Native piece for the app’s challenge screen, and some AI code to suggest challenges. It’s just a taste of what’s coming, but I think it shows how we can make this work!
+
 ## Where We’re Headed  
 Since WaveHack has four waves total, we’ve got three left after this ideathon to make NeroFit shine:  
 - **Wave 2**: Build a basic version—smart contracts, a simple app, and Paymaster setup to get things rolling.  
