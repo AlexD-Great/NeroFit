@@ -12,6 +12,7 @@ A Flutter application that enables users to connect their wallet and complete a 
 - Challenge completion
 - Reward claiming
 - Progress visualization
+- Gasless transactions facilitated by the Paymaster API
 
 ## Getting Started
 
