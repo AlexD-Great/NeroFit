@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter_web3/flutter_web3.dart';
 
 class WalletProvider extends ChangeNotifier {
-  final String _apiBaseUrl = 'http://localhost:3000/api';
+  final String _apiBaseUrl = 'https://nerofit.onrender.com';
 
   bool _isConnected = false;
   String _walletAddress = '';
