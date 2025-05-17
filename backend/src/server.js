@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: '*', // Update this with your Vercel app URL in production
+  origin: 'https://nero-fit-alexs-projects-d94d3fc6.vercel.app/',
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
