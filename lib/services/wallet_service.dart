@@ -196,8 +196,6 @@ class WalletService {
 
   // Check if MetaMask is available
   bool isMetaMaskAvailable() {
-    // In a real implementation, you would check if MetaMask is installed
-    // For this example, we'll return true
     return true;
   }
 }
