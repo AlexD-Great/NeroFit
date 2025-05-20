@@ -24,12 +24,12 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        cardTheme: CardTheme(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        // Using other theme properties that are compatible with Flutter 3.27.1
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.purple,
+          brightness: Brightness.light,
         ),
+        useMaterial3: true,
       ),
       home: const LoginScreen(),
       debugShowCheckedModeBanner: false,
