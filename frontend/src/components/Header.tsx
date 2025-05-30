@@ -1,6 +1,6 @@
 "use client";
 
-import { useDynamicContext, DynamicWidget } from "@dynamic-labs/sdk-react-core";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 

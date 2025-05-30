@@ -1,42 +1,58 @@
 #!/bin/bash
 
-# Start NeroFit Development Environment
+# NeroFit Development Startup Script
 echo "🚀 Starting NeroFit Development Environment..."
 
-# Function to kill background processes on exit
-cleanup() {
-    echo "🛑 Stopping servers..."
-    kill $BACKEND_PID $FRONTEND_PID 2>/dev/null
-    exit
-}
+# Get the script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Set up signal handlers
-trap cleanup SIGINT SIGTERM
+# Set development environment variables
+export NEXT_TELEMETRY_DISABLED=1
+export DISABLE_ESLINT_PLUGIN=true
+export FAST_REFRESH=true
+export NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+
+# Kill any existing processes on ports 3000 and 3001
+echo "🧹 Cleaning up existing processes..."
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+
+# Wait a moment for ports to be freed
+sleep 2
 
 # Start backend server
-echo "📡 Starting backend server on port 3001..."
-cd ../backend
-npm run dev &
+echo "🔧 Starting backend server on port 3001..."
+cd "$SCRIPT_DIR/backend" && PORT=3001 node src/server.js &
 BACKEND_PID=$!
 
-# Wait a moment for backend to start
+# Wait for backend to start
 sleep 3
 
-# Start frontend server
-echo "🎨 Starting frontend server on port 3000..."
-cd ../frontend
-npm run dev &
+# Start frontend server with optimizations
+echo "⚡ Starting frontend server on port 3000..."
+cd "$SCRIPT_DIR/frontend" && npm run dev:fast &
 FRONTEND_PID=$!
 
-# Wait a moment for frontend to start
-sleep 3
-
-echo "✅ Development environment ready!"
+echo "✅ Development servers started!"
 echo "📱 Frontend: http://localhost:3000"
 echo "🔧 Backend: http://localhost:3001"
-echo "📊 Backend Health: http://localhost:3001/health"
 echo ""
 echo "Press Ctrl+C to stop all servers"
 
-# Wait for background processes
+# Function to cleanup on exit
+cleanup() {
+    echo ""
+    echo "🛑 Stopping development servers..."
+    kill $BACKEND_PID 2>/dev/null || true
+    kill $FRONTEND_PID 2>/dev/null || true
+    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+    echo "✅ All servers stopped"
+    exit 0
+}
+
+# Set trap to cleanup on script exit
+trap cleanup SIGINT SIGTERM
+
+# Wait for user to stop
 wait 

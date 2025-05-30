@@ -4,166 +4,28 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
-
-interface LeaderboardUser {
-  id: string;
-  name: string;
-  walletAddress: string;
-  totalTokens: number;
-  challengesCompleted: number;
-  rank: number;
-  avatar: string;
-  joinedDate: string;
-  lastActive: string;
-  badges: string[];
-  streak: number;
-}
+import { 
+  mockLeaderboardUsers, 
+  LeaderboardUser 
+} from '@/data/mockData';
 
 export default function LeaderboardPage() {
   const router = useRouter();
   const { user, primaryWallet } = useDynamicContext();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
-  const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month'>('all');
+  const [timeFilter, setTimeFilter] = useState<'weekly' | 'monthly' | 'all-time'>('all-time');
   const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);
 
   const isAuthenticated = !!(user || primaryWallet);
 
   useEffect(() => {
-    // Mock leaderboard data
-    const mockUsers: LeaderboardUser[] = [
-      {
-        id: '1',
-        name: 'FitnessPro',
-        walletAddress: '0x1234...5678',
-        totalTokens: 2450,
-        challengesCompleted: 89,
-        rank: 1,
-        avatar: 'https://ui-avatars.com/api/?name=FitnessPro&background=667eea&color=fff&size=40',
-        joinedDate: '2024-01-15',
-        lastActive: '2024-03-15',
-        badges: ['🏆', '💪', '🔥'],
-        streak: 45
-      },
-      {
-        id: '2',
-        name: 'HealthWarrior',
-        walletAddress: '0x2345...6789',
-        totalTokens: 2180,
-        challengesCompleted: 76,
-        rank: 2,
-        avatar: 'https://ui-avatars.com/api/?name=HealthWarrior&background=f093fb&color=fff&size=40',
-        joinedDate: '2024-01-20',
-        lastActive: '2024-03-14',
-        badges: ['🏃‍♂️', '🧘‍♀️', '💧'],
-        streak: 32
-      },
-      {
-        id: '3',
-        name: 'CardioKing',
-        walletAddress: '0x3456...7890',
-        totalTokens: 1950,
-        challengesCompleted: 68,
-        rank: 3,
-        avatar: 'https://ui-avatars.com/api/?name=CardioKing&background=4ade80&color=fff&size=40',
-        joinedDate: '2024-02-01',
-        lastActive: '2024-03-15',
-        badges: ['🏃‍♂️', '🚴‍♂️', '⚡'],
-        streak: 28
-      },
-      {
-        id: '4',
-        name: 'YogaMaster',
-        walletAddress: '0x4567...8901',
-        totalTokens: 1720,
-        challengesCompleted: 55,
-        rank: 4,
-        avatar: 'https://ui-avatars.com/api/?name=YogaMaster&background=fb7185&color=fff&size=40',
-        joinedDate: '2024-02-10',
-        lastActive: '2024-03-13',
-        badges: ['🧘‍♀️', '🌟', '☮️'],
-        streak: 21
-      },
-      {
-        id: '5',
-        name: 'StrengthSeeker',
-        walletAddress: '0x5678...9012',
-        totalTokens: 1580,
-        challengesCompleted: 52,
-        rank: 5,
-        avatar: 'https://ui-avatars.com/api/?name=StrengthSeeker&background=fbbf24&color=fff&size=40',
-        joinedDate: '2024-02-15',
-        lastActive: '2024-03-12',
-        badges: ['💪', '🏋️‍♂️', '🔥'],
-        streak: 19
-      },
-      {
-        id: '6',
-        name: 'WellnessGuru',
-        walletAddress: '0x6789...0123',
-        totalTokens: 1420,
-        challengesCompleted: 48,
-        rank: 6,
-        avatar: 'https://ui-avatars.com/api/?name=WellnessGuru&background=8b5cf6&color=fff&size=40',
-        joinedDate: '2024-02-20',
-        lastActive: '2024-03-14',
-        badges: ['💧', '🌱', '✨'],
-        streak: 15
-      },
-      {
-        id: '7',
-        name: 'RunnerHigh',
-        walletAddress: '0x7890...1234',
-        totalTokens: 1280,
-        challengesCompleted: 44,
-        rank: 7,
-        avatar: 'https://ui-avatars.com/api/?name=RunnerHigh&background=06b6d4&color=fff&size=40',
-        joinedDate: '2024-02-25',
-        lastActive: '2024-03-11',
-        badges: ['🏃‍♂️', '🎯', '⚡'],
-        streak: 12
-      },
-      {
-        id: '8',
-        name: 'FitExplorer',
-        walletAddress: '0x8901...2345',
-        totalTokens: 1150,
-        challengesCompleted: 41,
-        rank: 8,
-        avatar: 'https://ui-avatars.com/api/?name=FitExplorer&background=ef4444&color=fff&size=40',
-        joinedDate: '2024-03-01',
-        lastActive: '2024-03-15',
-        badges: ['🚶‍♂️', '🌟', '🎖️'],
-        streak: 10
-      },
-      {
-        id: '9',
-        name: 'ActiveLife',
-        walletAddress: '0x9012...3456',
-        totalTokens: 980,
-        challengesCompleted: 37,
-        rank: 9,
-        avatar: 'https://ui-avatars.com/api/?name=ActiveLife&background=10b981&color=fff&size=40',
-        joinedDate: '2024-03-05',
-        lastActive: '2024-03-13',
-        badges: ['💪', '🌱', '🏆'],
-        streak: 8
-      },
-      {
-        id: '10',
-        name: 'HealthHero',
-        walletAddress: '0x0123...4567',
-        totalTokens: 850,
-        challengesCompleted: 33,
-        rank: 10,
-        avatar: 'https://ui-avatars.com/api/?name=HealthHero&background=f59e0b&color=fff&size=40',
-        joinedDate: '2024-03-08',
-        lastActive: '2024-03-14',
-        badges: ['🎯', '💧', '⭐'],
-        streak: 6
-      }
-    ];
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
 
-    setLeaderboardData(mockUsers);
+    // Use centralized data
+    setLeaderboardData(mockLeaderboardUsers);
 
     // Set current user rank if authenticated
     if (isAuthenticated) {
@@ -182,7 +44,7 @@ export default function LeaderboardPage() {
       };
       setCurrentUserRank(currentUser);
     }
-  }, [isAuthenticated, user, primaryWallet]);
+  }, [isAuthenticated, user, primaryWallet, router]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -236,13 +98,13 @@ export default function LeaderboardPage() {
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-1 border border-white/20">
             <div className="flex space-x-1">
               {[
-                { key: 'all', label: 'All Time' },
-                { key: 'month', label: 'This Month' },
-                { key: 'week', label: 'This Week' }
+                { key: 'all-time', label: 'All Time' },
+                { key: 'monthly', label: 'This Month' },
+                { key: 'weekly', label: 'This Week' }
               ].map((filter) => (
                 <button
                   key={filter.key}
-                  onClick={() => setTimeFilter(filter.key as any)}
+                  onClick={() => setTimeFilter(filter.key as 'weekly' | 'monthly' | 'all-time')}
                   className={`px-6 py-2 rounded-lg transition-all duration-200 ${
                     timeFilter === filter.key
                       ? 'bg-purple-600 text-white'
@@ -342,7 +204,7 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {leaderboardData.map((user, index) => (
+                {leaderboardData.map((user) => (
                   <tr
                     key={user.id}
                     className="border-b border-white/10 hover:bg-white/5 transition-colors"

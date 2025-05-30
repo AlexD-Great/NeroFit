@@ -7,20 +7,25 @@ const bodyParser = require('body-parser');
 const connectWalletRoute = require('./routes/connect-wallet');
 const userDataRoute = require('./routes/user-data');
 const claimTokensRoute = require('./routes/claim-tokens');
+const challengesRoute = require('./routes/challenges');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// Ensure PORT is properly read from environment
+const PORT = parseInt(process.env.PORT) || 3001;
+console.log(`Using PORT: ${PORT} (from env: ${process.env.PORT})`);
 
 // Middleware
 app.use(cors({
   origin: [
-    'https://nero-fit-alexs-projects-d94d3fc6.vercel.app/',
+    'https://nero-fit-alexs-projects-d94d3fc6.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3002',
     'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001'
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002'
   ],
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -30,6 +35,7 @@ app.use(bodyParser.json());
 app.use('/api/connect-wallet', connectWalletRoute);
 app.use('/api/user-data', userDataRoute);
 app.use('/api/claim-tokens', claimTokensRoute);
+app.use('/api/challenges', challengesRoute);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

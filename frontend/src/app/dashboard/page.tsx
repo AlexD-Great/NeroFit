@@ -4,47 +4,22 @@ import { useState, useEffect } from 'react';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
+import { 
+  mockChallenges, 
+  mockUserStats, 
+  Challenge, 
+  UserStats 
+} from '@/data/mockData';
 
-interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  reward: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  category: 'Cardio' | 'Strength' | 'Wellness' | 'Endurance';
-  progress: number;
-  completed: boolean;
-  icon: string;
-  estimatedTime: string;
-}
-
-interface UserStats {
-  totalTokens: number;
-  challengesCompleted: number;
-  currentStreak: number;
-  weeklyWorkouts: number;
-  totalDistance: number;
-  totalMinutes: number;
-  rank: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: 'challenge' | 'workout' | 'badge';
-  title: string;
-  description: string;
-  reward: number;
-  timestamp: string;
-  icon: string;
-}
+type TabType = 'overview' | 'active' | 'completed';
 
 export default function DashboardPage() {
   const { user, primaryWallet } = useDynamicContext();
   const router = useRouter();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'week' | 'month' | 'year'>('week');
+  const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [claimingTokens, setClaimingTokens] = useState<string | null>(null);
 
   const isAuthenticated = !!(user || primaryWallet);
 
@@ -54,91 +29,9 @@ export default function DashboardPage() {
       return;
     }
 
-    // Mock user stats
-    const mockStats: UserStats = {
-      totalTokens: 420,
-      challengesCompleted: 15,
-      currentStreak: 5,
-      weeklyWorkouts: 3,
-      totalDistance: 25.5,
-      totalMinutes: 180,
-      rank: 25
-    };
-
-    // Mock active challenges
-    const mockChallenges: Challenge[] = [
-      {
-        id: '1',
-        title: 'Walk 1km',
-        description: 'Take a 1 kilometer walk today',
-        reward: 10,
-        difficulty: 'Easy',
-        category: 'Cardio',
-        progress: 60,
-        completed: false,
-        icon: '🚶‍♂️',
-        estimatedTime: '10-15 minutes'
-      },
-      {
-        id: '2',
-        title: '30-Minute Workout',
-        description: 'Complete a 30-minute strength training session',
-        reward: 30,
-        difficulty: 'Medium',
-        category: 'Strength',
-        progress: 0,
-        completed: false,
-        icon: '💪',
-        estimatedTime: '30 minutes'
-      },
-      {
-        id: '3',
-        title: '15-Minute Meditation',
-        description: 'Practice mindfulness for 15 minutes',
-        reward: 12,
-        difficulty: 'Easy',
-        category: 'Wellness',
-        progress: 0,
-        completed: false,
-        icon: '🧘‍♀️',
-        estimatedTime: '15 minutes'
-      }
-    ];
-
-    // Mock recent activity
-    const mockActivity: RecentActivity[] = [
-      {
-        id: '1',
-        type: 'challenge',
-        title: 'Completed "Drink 8 Glasses of Water"',
-        description: 'Wellness challenge completed',
-        reward: 15,
-        timestamp: '2 hours ago',
-        icon: '💧'
-      },
-      {
-        id: '2',
-        type: 'badge',
-        title: 'Earned "Consistency King" badge',
-        description: 'Maintained a 5-day streak',
-        reward: 5,
-        timestamp: '1 day ago',
-        icon: '🏆'
-      },
-      {
-        id: '3',
-        type: 'workout',
-        title: 'Completed morning run',
-        description: '3km run in the park',
-        reward: 25,
-        timestamp: '2 days ago',
-        icon: '🏃‍♂️'
-      }
-    ];
-
-    setUserStats(mockStats);
-    setActiveChallenges(mockChallenges);
-    setRecentActivity(mockActivity);
+    // Use centralized data
+    setUserStats(mockUserStats);
+    setAllChallenges(mockChallenges);
   }, [isAuthenticated, user, primaryWallet, router]);
 
   const getUserDisplayName = () => {
@@ -172,10 +65,93 @@ export default function DashboardPage() {
     router.push('/challenges');
   };
 
-  const handleStartWorkout = () => {
-    // Navigate to a workout selection or start a quick workout
-    router.push('/challenges?category=Strength');
+  const handleClaimTokens = async (challengeId: string, reward: number) => {
+    setClaimingTokens(challengeId);
+    
+    try {
+      const walletAddress = primaryWallet?.address;
+      
+      if (!walletAddress) {
+        throw new Error('No wallet address found');
+      }
+
+      // Call backend API to claim tokens
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      console.log('Attempting to claim tokens:', { backendUrl, challengeId, reward, walletAddress });
+      
+      const response = await fetch(`${backendUrl}/api/challenges/claim-tokens`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress,
+          challengeId,
+          reward
+        })
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response:', responseText);
+        throw new Error(`Expected JSON response but got: ${contentType}. Response: ${responseText.substring(0, 200)}...`);
+      }
+
+      const result = await response.json();
+      console.log('API response:', result);
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to claim tokens');
+      }
+      
+      // Update challenge to mark as claimed
+      const updatedChallenges = allChallenges.map(challenge => 
+        challenge.id === challengeId 
+          ? { ...challenge, claimable: false }
+          : challenge
+      );
+      setAllChallenges(updatedChallenges);
+      
+      // Update user stats
+      if (userStats) {
+        setUserStats({
+          ...userStats,
+          totalTokens: userStats.totalTokens + reward,
+          claimableTokens: userStats.claimableTokens - reward
+        });
+      }
+      
+      // Show success message
+      alert(`Successfully claimed ${reward} FIT tokens! Transaction: ${result.data?.transactionHash || 'N/A'}`);
+      
+    } catch (error) {
+      console.error('Failed to claim tokens:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to claim tokens: ${errorMessage}`);
+    } finally {
+      setClaimingTokens(null);
+    }
   };
+
+  const activeChallenges = allChallenges.filter(c => !c.completed);
+  const completedChallenges = allChallenges.filter(c => c.completed);
+  const claimableChallenges = completedChallenges.filter(c => c.claimable);
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: '📊', count: null },
+    { id: 'active', label: 'Active', icon: '🎯', count: activeChallenges.length },
+    { id: 'completed', label: 'Completed', icon: '✅', count: completedChallenges.length }
+  ];
 
   if (!isAuthenticated) {
     return (
@@ -199,6 +175,249 @@ export default function DashboardPage() {
     );
   }
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-8">
+            {/* Claimable Tokens Alert */}
+            {userStats.claimableTokens > 0 && (
+              <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 backdrop-blur-lg rounded-xl p-6 border border-yellow-500/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-3xl">💰</span>
+                    <div>
+                      <h3 className="text-xl font-bold text-yellow-400">Tokens Ready to Claim!</h3>
+                      <p className="text-white/70">You have {userStats.claimableTokens} FIT tokens waiting to be claimed from completed challenges.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('completed')}
+                    className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+                  >
+                    Claim Now
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Today's Goals */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-bold text-white mb-6">🎯 Today&apos;s Goals</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/80">Complete 2 challenges</span>
+                  <span className="text-green-400 font-semibold">1/2</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="bg-green-400 h-2 rounded-full" style={{ width: '50%' }}></div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-white/80">Earn 50 FIT tokens</span>
+                  <span className="text-yellow-400 font-semibold">{userStats.totalTokens + userStats.claimableTokens}/50</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${Math.min(((userStats.totalTokens + userStats.claimableTokens) / 50) * 100, 100)}%` }}></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Weekly Progress */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-bold text-white mb-6">📈 Weekly Progress</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-400">{userStats.weeklyWorkouts}</div>
+                  <div className="text-white/60 text-sm">Workouts</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-400">{userStats.totalDistance}km</div>
+                  <div className="text-white/60 text-sm">Distance</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-400">{userStats.totalMinutes}min</div>
+                  <div className="text-white/60 text-sm">Active Time</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-400">{userStats.totalTokens}</div>
+                  <div className="text-white/60 text-sm">FIT Claimed</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'active':
+        return (
+          <div className="space-y-6">
+            {activeChallenges.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🎯</div>
+                <h3 className="text-xl font-bold text-white mb-2">No Active Challenges</h3>
+                <p className="text-white/60 mb-6">Start a new challenge to begin earning FIT tokens!</p>
+                <button
+                  onClick={handleViewAllChallenges}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+                >
+                  Browse Challenges
+                </button>
+              </div>
+            ) : (
+              activeChallenges.map((challenge) => (
+                <div key={challenge.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-3xl">{challenge.icon}</span>
+                      <div>
+                        <h4 className="text-lg font-bold text-white">{challenge.title}</h4>
+                        <p className="text-white/60 text-sm">{challenge.description}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-yellow-400 font-bold text-lg">{challenge.reward} FIT</div>
+                      <div className={`text-xs px-2 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
+                        {challenge.difficulty}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-white/70">Progress</span>
+                      <span className="text-white/70">{challenge.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${challenge.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="text-white/60 text-sm">
+                      <span className="mr-4">⏱️ {challenge.estimatedTime}</span>
+                      <span>📅 {challenge.timeLimit}</span>
+                    </div>
+                    <button
+                      onClick={() => handleStartChallenge(challenge.id)}
+                      className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm"
+                    >
+                      {challenge.progress > 0 ? 'Continue' : 'Start'}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        );
+
+      case 'completed':
+        return (
+          <div className="space-y-6">
+            {completedChallenges.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">✅</div>
+                <h3 className="text-xl font-bold text-white mb-2">No Completed Challenges</h3>
+                <p className="text-white/60 mb-6">Complete your first challenge to see it here!</p>
+                <button
+                  onClick={() => setActiveTab('active')}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+                >
+                  View Active Challenges
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-6 text-center">
+                  <h3 className="text-2xl font-bold text-white mb-2">🎉 Great Job!</h3>
+                  <p className="text-white/70">
+                    You&apos;ve completed {completedChallenges.length} challenges! 
+                    {claimableChallenges.length > 0 && (
+                      <span className="text-yellow-400 font-semibold">
+                        {' '}Claim {userStats.claimableTokens} FIT tokens below.
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {completedChallenges.map((challenge) => (
+                  <div key={challenge.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 relative">
+                    <div className="absolute top-4 right-4">
+                      <div className={`text-white text-xs px-2 py-1 rounded-full font-semibold ${
+                        challenge.claimable ? 'bg-yellow-500' : 'bg-green-500'
+                      }`}>
+                        {challenge.claimable ? '💰 CLAIMABLE' : '✅ CLAIMED'}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start justify-between mb-4 pr-24">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-3xl">{challenge.icon}</span>
+                        <div>
+                          <h4 className="text-lg font-bold text-white">{challenge.title}</h4>
+                          <p className="text-white/60 text-sm">{challenge.description}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-bold text-lg ${challenge.claimable ? 'text-yellow-400' : 'text-green-400'}`}>
+                          {challenge.claimable ? `${challenge.reward} FIT` : `+${challenge.reward} FIT`}
+                        </div>
+                        <div className={`text-xs px-2 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
+                          {challenge.difficulty}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <div className="w-full bg-green-500 rounded-full h-2"></div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="text-white/60 text-sm">
+                        <span className="mr-4">⏱️ {challenge.estimatedTime}</span>
+                        <span className="mr-4">🏆 {challenge.category}</span>
+                      </div>
+                      <div className="flex space-x-2">
+                        {challenge.claimable && (
+                          <button
+                            onClick={() => handleClaimTokens(challenge.id, challenge.reward)}
+                            disabled={claimingTokens === challenge.id}
+                            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm flex items-center space-x-2"
+                          >
+                            {claimingTokens === challenge.id ? (
+                              <>
+                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                <span>Claiming...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>💰</span>
+                                <span>Claim {challenge.reward} FIT</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleStartChallenge(challenge.id)}
+                          className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm"
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
       <Header />
@@ -219,19 +438,30 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-white/70 text-sm font-medium">FIT Tokens</h3>
               <span className="text-2xl">💰</span>
-            </div>
+              </div>
             <div className="text-3xl font-bold text-yellow-400 mb-1">{userStats.totalTokens}</div>
-            <div className="text-white/60 text-sm">+25 this week</div>
+            <div className="text-white/60 text-sm">
+              {userStats.claimableTokens > 0 ? (
+                <span className="text-yellow-400">+{userStats.claimableTokens} claimable</span>
+            ) : (
+                `From ${userStats.challengesCompleted} challenges`
+            )}
+            </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+          <button
+            onClick={() => setActiveTab('completed')}
+            className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-200 text-left"
+          >
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-white/70 text-sm font-medium">Challenges</h3>
               <span className="text-2xl">🏆</span>
             </div>
             <div className="text-3xl font-bold text-green-400 mb-1">{userStats.challengesCompleted}</div>
-            <div className="text-white/60 text-sm">Completed</div>
-          </div>
+            <div className="text-white/60 text-sm hover:text-green-400 transition-colors">
+              Completed • Click to view →
+            </div>
+          </button>
 
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
             <div className="flex items-center justify-between mb-2">
@@ -261,194 +491,40 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Left Column - Active Challenges */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Quick Actions */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-              <h3 className="text-xl font-bold text-white mb-6">🚀 Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Tab Navigation */}
+        <div className="mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-2 border border-white/20">
+            <div className="flex space-x-2">
+              {tabs.map((tab) => (
                 <button
-                  onClick={handleStartWorkout}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as TabType)}
+                  className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
                 >
-                  <span className="text-xl">💪</span>
-                  <span>Start Workout</span>
-                </button>
-                <button
-                  onClick={handleViewAllChallenges}
-                  className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2"
-                >
-                  <span className="text-xl">🎯</span>
-                  <span>View Challenges</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Active Challenges */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white">🎯 Active Challenges</h3>
-                <button
-                  onClick={handleViewAllChallenges}
-                  className="text-purple-400 hover:text-purple-300 text-sm transition-colors"
-                >
-                  View all →
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                {activeChallenges.map((challenge) => (
-                  <div
-                    key={challenge.id}
-                    className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                    onClick={() => handleStartChallenge(challenge.id)}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{challenge.icon}</span>
-                        <div>
-                          <h4 className="text-white font-semibold">{challenge.title}</h4>
-                          <p className="text-white/70 text-sm">{challenge.description}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-yellow-400 font-semibold">{challenge.reward} FIT</div>
-                        <div className={`text-xs px-2 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
-                          {challenge.difficulty}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Progress Bar */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-white/70">Progress</span>
-                        <span className="text-white">{challenge.progress}%</span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${challenge.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-white/60 text-sm">⏰ {challenge.estimatedTime}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartChallenge(challenge.id);
-                        }}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 rounded-lg text-sm transition-colors"
-                      >
-                        {challenge.progress > 0 ? 'Continue' : 'Start'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Weekly Progress */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-              <h3 className="text-xl font-bold text-white mb-6">📈 Weekly Progress</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">{userStats.weeklyWorkouts}</div>
-                  <div className="text-white/70 text-sm">Workouts</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-400">{userStats.totalDistance}km</div>
-                  <div className="text-white/70 text-sm">Distance</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">{userStats.totalMinutes}min</div>
-                  <div className="text-white/70 text-sm">Active Time</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-400">85%</div>
-                  <div className="text-white/70 text-sm">Goal Progress</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Recent Activity */}
-          <div className="space-y-8">
-            
-            {/* Recent Activity */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-              <h3 className="text-xl font-bold text-white mb-6">🕒 Recent Activity</h3>
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-                    <span className="text-xl">{activity.icon}</span>
-                    <div className="flex-1">
-                      <div className="text-white font-medium text-sm">{activity.title}</div>
-                      <div className="text-white/60 text-xs">{activity.description}</div>
-                      <div className="text-white/50 text-xs mt-1">{activity.timestamp}</div>
-                    </div>
-                    <div className="text-yellow-400 font-semibold text-sm">+{activity.reward}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Today's Goals */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-              <h3 className="text-xl font-bold text-white mb-6">🎯 Today's Goals</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">🚶‍♂️</span>
-                    <span className="text-white text-sm">Walk 10,000 steps</span>
-                  </div>
-                  <div className="text-green-400 text-sm">7,500 / 10,000</div>
-                </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div className="bg-green-400 h-2 rounded-full" style={{ width: '75%' }}></div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">💧</span>
-                    <span className="text-white text-sm">Drink 8 glasses</span>
-                  </div>
-                  <div className="text-blue-400 text-sm">6 / 8</div>
-                </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div className="bg-blue-400 h-2 rounded-full" style={{ width: '75%' }}></div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">🧘‍♀️</span>
-                    <span className="text-white text-sm">Meditate 15 min</span>
-                  </div>
-                  <div className="text-yellow-400 text-sm">0 / 15</div>
-                </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div className="bg-yellow-400 h-2 rounded-full" style={{ width: '0%' }}></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Motivational Quote */}
-            <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-lg rounded-xl p-6 border border-purple-500/30">
-              <div className="text-center">
-                <div className="text-3xl mb-3">💪</div>
-                <blockquote className="text-white font-medium mb-2">
-                  "The only bad workout is the one that didn't happen."
-                </blockquote>
-                <cite className="text-white/60 text-sm">- Unknown</cite>
-              </div>
+                  <span className="text-lg">{tab.icon}</span>
+                  <span className="font-medium">{tab.label}</span>
+                  {tab.count !== null && (
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      activeTab === tab.id ? 'bg-white/20' : 'bg-white/10'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+            </button>
+              ))}
             </div>
           </div>
         </div>
+
+        {/* Tab Content */}
+        <div className="mb-8">
+          {renderTabContent()}
+        </div>
+
       </div>
     </div>
   );

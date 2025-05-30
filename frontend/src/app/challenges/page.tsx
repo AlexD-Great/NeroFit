@@ -1,26 +1,19 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
-
-interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  reward: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  category: 'Cardio' | 'Strength' | 'Wellness' | 'Endurance';
-  timeLimit: string;
-  progress: number;
-  completed: boolean;
-  icon: string;
-  estimatedTime: string;
-}
+import { 
+  mockChallenges, 
+  mockUserStats, 
+  Challenge, 
+  UserStats 
+} from '@/data/mockData';
 
 export default function ChallengesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, primaryWallet } = useDynamicContext();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [filteredChallenges, setFilteredChallenges] = useState<Challenge[]>([]);
@@ -32,143 +25,20 @@ export default function ChallengesPage() {
   const isAuthenticated = !!(user || primaryWallet);
 
   useEffect(() => {
-    // Mock challenges data
-    const mockChallenges: Challenge[] = [
-      {
-        id: '1',
-        title: 'Walk 1km',
-        description: 'Take a 1 kilometer walk today',
-        reward: 10,
-        difficulty: 'Easy',
-        category: 'Cardio',
-        timeLimit: '24 hours',
-        progress: 0,
-        completed: false,
-        icon: '🚶‍♂️',
-        estimatedTime: '10-15 minutes'
-      },
-      {
-        id: '2',
-        title: 'Run 3km',
-        description: 'Complete a 3 kilometer run',
-        reward: 25,
-        difficulty: 'Medium',
-        category: 'Cardio',
-        timeLimit: '24 hours',
-        progress: 60,
-        completed: false,
-        icon: '🏃‍♂️',
-        estimatedTime: '15-25 minutes'
-      },
-      {
-        id: '3',
-        title: 'Drink 8 Glasses of Water',
-        description: 'Stay hydrated throughout the day',
-        reward: 15,
-        difficulty: 'Easy',
-        category: 'Wellness',
-        timeLimit: '24 hours',
-        progress: 100,
-        completed: true,
-        icon: '💧',
-        estimatedTime: 'Throughout the day'
-      },
-      {
-        id: '4',
-        title: '30-Minute Workout',
-        description: 'Complete a 30-minute strength training session',
-        reward: 30,
-        difficulty: 'Medium',
-        category: 'Strength',
-        timeLimit: '24 hours',
-        progress: 0,
-        completed: false,
-        icon: '💪',
-        estimatedTime: '30 minutes'
-      },
-      {
-        id: '5',
-        title: '10,000 Steps',
-        description: 'Reach 10,000 steps today',
-        reward: 20,
-        difficulty: 'Medium',
-        category: 'Cardio',
-        timeLimit: '24 hours',
-        progress: 75,
-        completed: false,
-        icon: '👟',
-        estimatedTime: 'Throughout the day'
-      },
-      {
-        id: '6',
-        title: '15-Minute Meditation',
-        description: 'Practice mindfulness for 15 minutes',
-        reward: 12,
-        difficulty: 'Easy',
-        category: 'Wellness',
-        timeLimit: '24 hours',
-        progress: 0,
-        completed: false,
-        icon: '🧘‍♀️',
-        estimatedTime: '15 minutes'
-      },
-      {
-        id: '7',
-        title: '50 Push-ups',
-        description: 'Complete 50 push-ups in sets',
-        reward: 18,
-        difficulty: 'Medium',
-        category: 'Strength',
-        timeLimit: '24 hours',
-        progress: 0,
-        completed: false,
-        icon: '🤸‍♂️',
-        estimatedTime: '10-15 minutes'
-      },
-      {
-        id: '8',
-        title: '5km Bike Ride',
-        description: 'Go for a 5 kilometer bike ride',
-        reward: 22,
-        difficulty: 'Medium',
-        category: 'Cardio',
-        timeLimit: '24 hours',
-        progress: 0,
-        completed: false,
-        icon: '🚴‍♂️',
-        estimatedTime: '15-20 minutes'
-      },
-      {
-        id: '9',
-        title: 'Yoga Session',
-        description: 'Complete a 20-minute yoga session',
-        reward: 16,
-        difficulty: 'Easy',
-        category: 'Wellness',
-        timeLimit: '24 hours',
-        progress: 0,
-        completed: false,
-        icon: '🧘‍♀️',
-        estimatedTime: '20 minutes'
-      },
-      {
-        id: '10',
-        title: 'Marathon Training',
-        description: 'Run 10km for marathon preparation',
-        reward: 50,
-        difficulty: 'Hard',
-        category: 'Endurance',
-        timeLimit: '24 hours',
-        progress: 0,
-        completed: false,
-        icon: '🏃‍♂️',
-        estimatedTime: '45-60 minutes'
-      }
-    ];
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
 
+    // Use centralized data
     setChallenges(mockChallenges);
-    setFilteredChallenges(mockChallenges);
-  }, []);
+    
+    // Check for category filter from URL
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [isAuthenticated, user, primaryWallet, router, searchParams]);
 
   useEffect(() => {
     let filtered = challenges;

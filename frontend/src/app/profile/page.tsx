@@ -48,7 +48,7 @@ interface UserStats {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, primaryWallet, handleLogOut } = useDynamicContext();
+  const { user, primaryWallet } = useDynamicContext();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({

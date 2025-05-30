@@ -212,7 +212,7 @@ export default function ChallengePage() {
 
   const handleCompleteChallenge = async () => {
     if (!challenge) return;
-    
+
     setIsLoading(true);
     showInfo('Completing challenge...');
     
@@ -286,7 +286,7 @@ export default function ChallengePage() {
           <div className="text-center">
             <div className="text-6xl mb-4">❌</div>
             <h2 className="text-2xl font-bold text-white mb-4">Challenge Not Found</h2>
-            <p className="text-white/70 mb-6">The challenge you're looking for doesn't exist.</p>
+            <p className="text-white/70 mb-6">The challenge you&apos;re looking for doesn&apos;t exist.</p>
             <button
               onClick={() => router.push('/challenges')}
               className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
@@ -310,7 +310,7 @@ export default function ChallengePage() {
             <div className="text-6xl mb-4">🎉</div>
             <h3 className="text-2xl font-bold text-white mb-4">Congratulations!</h3>
             <p className="text-white/80 mb-6">
-              You've successfully completed the "{challenge.title}" challenge and earned {challenge.reward} FIT tokens!
+              You&apos;ve successfully completed the &ldquo;{challenge.title}&rdquo; challenge and earned {challenge.reward} FIT tokens!
             </p>
             <div className="space-y-3">
               <button
@@ -333,20 +333,20 @@ export default function ChallengePage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Back Button */}
-        <button
+          <button
           onClick={() => router.back()}
           className="flex items-center space-x-2 text-white/70 hover:text-white mb-6 transition-colors"
-        >
+          >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-          </svg>
+            </svg>
           <span>Back to Challenges</span>
-        </button>
-
+          </button>
+          
         {/* Challenge Header */}
         <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 mb-8">
           <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4">
               <div className="text-6xl">{challenge.icon}</div>
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">{challenge.title}</h1>
@@ -369,33 +369,33 @@ export default function ChallengePage() {
             </div>
             <div className="px-4 py-2 rounded-full border text-sm font-medium text-white/70 bg-white/10 border-white/20">
               ⏰ {challenge.estimatedTime}
-            </div>
+          </div>
             <div className="px-4 py-2 rounded-full border text-sm font-medium text-white/70 bg-white/10 border-white/20">
               📅 {challenge.timeLimit}
             </div>
           </div>
-
+          
           {/* Progress Bar */}
           <div className="space-y-2 mb-6">
-            <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm">
               <span className="text-white/70">Progress</span>
               <span className="text-white">{userProgress}%</span>
-            </div>
-            <div className="w-full bg-white/20 rounded-full h-3">
-              <div 
-                className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${userProgress}%` }}
-              ></div>
-            </div>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-3">
+                  <div 
+                    className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${userProgress}%` }}
+                  ></div>
+                </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex space-x-4">
             {challenge.completed ? (
-              <div className="flex items-center space-x-2 text-green-400">
+                  <div className="flex items-center space-x-2 text-green-400">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
+                    </svg>
                 <span className="font-semibold">Challenge Completed!</span>
               </div>
             ) : userProgress === 0 ? (
@@ -422,8 +422,8 @@ export default function ChallengePage() {
             >
               Browse More
             </button>
-          </div>
-        </div>
+                </div>
+              </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
@@ -479,15 +479,15 @@ export default function ChallengePage() {
                 <div className="flex justify-between">
                   <span className="text-white/70">Category</span>
                   <span className="text-white font-medium">{challenge.category}</span>
-                </div>
+              </div>
                 <div className="flex justify-between">
                   <span className="text-white/70">Estimated Time</span>
                   <span className="text-white font-medium">{challenge.estimatedTime}</span>
-                </div>
+            </div>
                 <div className="flex justify-between">
                   <span className="text-white/70">Time Limit</span>
                   <span className="text-white font-medium">{challenge.timeLimit}</span>
-                </div>
+                  </div>
                 <div className="flex justify-between">
                   <span className="text-white/70">FIT Reward</span>
                   <span className="text-yellow-400 font-bold">{challenge.reward} FIT</span>

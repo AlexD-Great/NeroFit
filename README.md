@@ -15,28 +15,55 @@ NeroFit is a Web3 fitness application that rewards users with FIT tokens for com
 ## Tech Stack
 
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express.js, REST API
 - **Authentication**: Dynamic.xyz (wallet + social + email)
 - **Blockchain**: Nero Testnet (EVM-compatible)
 - **Web3**: Wagmi, Viem
 - **State Management**: React Query
 
-## Quick Start
+## 🚀 Quick Start
+
+**TL;DR - Get NeroFit running in 3 commands:**
+
+```bash
+# 1. Clone and install dependencies
+git clone https://github.com/yourusername/nerofit.git && cd nerofit
+cd frontend && npm install && cd ../backend && npm install && cd ..
+
+# 2. Make startup script executable
+chmod +x start-dev.sh
+
+# 3. Start both servers with optimizations
+./start-dev.sh
+```
+
+Then open http://localhost:3000 in your browser! 🎉
+
+> **Need environment setup?** See the [detailed installation guide](#installation--setup) below.
+
+## Detailed Setup
 
 ### Prerequisites
 
 - Node.js 18+ and npm
 - A Dynamic.xyz account (free)
 
-### Installation
+### Installation & Setup
 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/yourusername/nerofit.git
-   cd nerofit/frontend
+   cd nerofit
    ```
 
-2. **Install dependencies**
+2. **Install dependencies for both frontend and backend**
    ```bash
+   # Install frontend dependencies
+   cd frontend
+   npm install
+   
+   # Install backend dependencies
+   cd ../backend
    npm install
    ```
 
@@ -44,21 +71,239 @@ NeroFit is a Web3 fitness application that rewards users with FIT tokens for com
    - Go to [Dynamic.xyz](https://app.dynamic.xyz) and create a free account
    - Create a new project
    - Copy your Environment ID from the dashboard
+   - In your Dynamic dashboard, add `http://localhost:3000` to allowed origins to prevent CORS errors
 
 4. **Configure environment variables**
-   Create a `.env.local` file in the frontend directory:
+   
+   **Frontend** - Create a `.env.local` file in the `frontend` directory:
    ```bash
    # Dynamic.xyz Configuration
    NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID=your-dynamic-environment-id
+   
+   # Backend API Configuration (optional - defaults to http://localhost:3001)
+   NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
    ```
 
-5. **Run the development server**
+   **Backend** - Create a `.env` file in the `backend` directory:
    ```bash
-   npm run dev
+   # Nero Testnet Configuration
+   NERO_TESTNET_RPC=https://testnet-rpc.nerochain.io
+   PAYMASTER_ADDRESS=0x5a6680dFd4a77FEea0A7be291147768EaA2414ad
+   
+   # Server Configuration
+   PORT=3001
    ```
 
-6. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+### Running the Application
+
+**Important**: You need to run both the backend and frontend servers simultaneously.
+
+#### Option 1: Quick Start with Startup Script (Recommended)
+
+For the fastest and easiest setup, use the provided startup script:
+
+```bash
+# Make the script executable (first time only)
+chmod +x start-dev.sh
+
+# Start both servers with optimized settings
+./start-dev.sh
+```
+
+This script will:
+- ✅ Automatically kill any existing processes on ports 3000 and 3001
+- ✅ Start the backend server on port 3001 with proper environment variables
+- ✅ Start the frontend server on port 3000 with performance optimizations
+- ✅ Display real-time status and URLs for both servers
+- ✅ Handle graceful shutdown when you press Ctrl+C
+
+**Expected Output:**
+```
+🚀 Starting NeroFit Development Environment...
+🧹 Cleaning up existing processes...
+🔧 Starting backend server on port 3001...
+Using PORT: 3001 (from env: 3001)
+Server running on port 3001
+Connected to Nero testnet at https://testnet-rpc.nerochain.io
+Using Paymaster at address 0x5a6680dFd4a77FEea0A7be291147768EaA2414ad
+⚡ Starting frontend server on port 3000...
+✅ Development servers started!
+📱 Frontend: http://localhost:3000
+🔧 Backend: http://localhost:3001
+Press Ctrl+C to stop all servers
+```
+
+#### Option 2: Using separate terminals
+
+**Terminal 1 - Start the Backend Server:**
+```bash
+cd backend
+PORT=3001 node src/server.js
+```
+You should see:
+```
+Server running on port 3001
+Connected to Nero testnet at https://testnet-rpc.nerochain.io
+Using Paymaster at address 0x5a6680dFd4a77FEea0A7be291147768EaA2414ad
+```
+
+**Terminal 2 - Start the Frontend Server:**
+```bash
+cd frontend
+npm run dev
+```
+You should see:
+```
+▲ Next.js 15.3.3
+- Local:        http://localhost:3000
+- Network:      http://192.168.x.x:3000
+✓ Ready in 3s
+```
+
+#### Option 3: Using background processes
+
+```bash
+# Start backend in background
+cd backend && PORT=3001 node src/server.js &
+
+# Start frontend
+cd frontend && npm run dev
+```
+
+#### Performance Monitoring
+
+Check server status and performance anytime:
+```bash
+# Check if both servers are running and healthy
+./check-performance.sh
+```
+
+This will show:
+- ✅ Port availability status
+- ✅ Backend API health check
+- ✅ Frontend accessibility
+- 📊 Memory usage statistics
+- 🚀 Performance optimization tips
+
+### Accessing the Application
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:3001
+- **Health Check**: http://localhost:3001/health
+
+### Troubleshooting Port Issues
+
+If you encounter "port already in use" errors:
+
+1. **Use the startup script (handles this automatically):**
+   ```bash
+   ./start-dev.sh
+   # The script automatically cleans up existing processes
+   ```
+
+2. **Manual cleanup if needed:**
+   ```bash
+   # Kill any process using port 3000
+   lsof -ti:3000 | xargs kill -9
+   
+   # Kill any process using port 3001
+   lsof -ti:3001 | xargs kill -9
+   ```
+
+3. **Verify ports are free:**
+   ```bash
+   lsof -i:3000  # Should return nothing
+   lsof -i:3001  # Should return nothing
+   ```
+
+4. **Start servers in correct order:**
+   - Always start backend first (port 3001)
+   - Then start frontend (port 3000)
+
+### Common Issues and Solutions
+
+#### Startup Script Issues
+
+**Problem**: `Permission denied` when running `./start-dev.sh`
+```bash
+# Solution: Make the script executable
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
+**Problem**: Script can't find directories
+```bash
+# Solution: Make sure you're in the project root directory
+pwd  # Should show: /path/to/NeroFit
+ls   # Should show: frontend/ backend/ start-dev.sh
+```
+
+**Problem**: Frontend takes too long to load (40+ seconds)
+```bash
+# Solution: Clear Next.js cache and restart
+cd frontend
+rm -rf .next node_modules/.cache .turbo
+cd ..
+./start-dev.sh
+```
+
+**Problem**: Backend keeps getting killed
+```bash
+# Solution: Check if another process is using port 3001
+lsof -i:3001
+# Kill the conflicting process, then restart
+./start-dev.sh
+```
+
+### Testing the Setup
+
+1. **Test Backend API:**
+   ```bash
+   curl http://localhost:3001/health
+   # Should return: {"status":"ok"}
+   ```
+
+2. **Test Token Claiming API:**
+   ```bash
+   curl -X POST http://localhost:3001/api/challenges/claim-tokens \
+     -H "Content-Type: application/json" \
+     -d '{"walletAddress":"0x1234567890123456789012345678901234567890","challengeId":"daily-steps","reward":100}'
+   # Should return success response with transaction hash
+   ```
+
+3. **Access Frontend:**
+   - Open http://localhost:3000 in your browser
+   - Navigate to dashboard
+   - Test wallet connection and token claiming
+
+## Project Structure
+
+```
+nerofit/
+├── frontend/               # Next.js frontend application
+│   ├── src/
+│   │   ├── app/           # Next.js app router
+│   │   │   ├── dashboard/ # Main dashboard page
+│   │   │   ├── login/     # Authentication page
+│   │   │   └── layout.tsx # Root layout with providers
+│   │   ├── components/    # Reusable UI components
+│   │   │   └── ClientProvider.tsx # Client-side providers wrapper
+│   │   ├── hooks/         # Custom React hooks
+│   │   ├── lib/           # Utility libraries
+│   │   └── types/         # TypeScript type definitions
+│   ├── public/            # Static assets
+│   └── package.json       # Frontend dependencies
+├── backend/                # Node.js backend API
+│   ├── src/
+│   │   ├── routes/        # API route handlers
+│   │   │   ├── challenges.js    # Challenge and token claiming endpoints
+│   │   │   ├── user-data.js     # User data endpoints
+│   │   │   └── connect-wallet.js # Wallet connection endpoints
+│   │   └── server.js      # Express server configuration
+│   └── package.json       # Backend dependencies
+├── contracts/              # Smart contracts (if any)
+└── README.md              # This file
+```
 
 ## Dynamic.xyz Setup Guide
 
@@ -123,29 +368,6 @@ NeroFit supports multiple authentication methods through Dynamic.xyz:
 - **Embedded Wallets**: Create wallets for users automatically
 - **Progressive Web3**: Start with email, upgrade to wallet later
 
-## Project Structure
-
-```
-frontend/
-├── src/
-│   ├── app/                 # Next.js app router
-│   │   ├── dashboard/       # Main dashboard page
-│   │   ├── login/          # Authentication page
-│   │   └── layout.tsx      # Root layout with providers
-│   ├── components/         # Reusable UI components
-│   ├── hooks/              # Custom React hooks
-│   │   └── useDynamicAuth.ts # Dynamic authentication hook
-│   ├── lib/                # Utility libraries
-│   │   ├── dynamic.ts      # Dynamic.xyz configuration
-│   │   └── wagmi.ts        # Wagmi configuration for Nero
-│   ├── providers/          # React context providers
-│   │   ├── DynamicProvider.tsx # Dynamic + Wagmi provider
-│   │   └── ToastProvider.tsx   # Toast notifications
-│   └── types/              # TypeScript type definitions
-├── public/                 # Static assets
-└── package.json           # Dependencies and scripts
-```
-
 ## Key Features Explained
 
 ### Multi-Authentication Support
@@ -168,15 +390,20 @@ frontend/
 
 ### Available Scripts
 
-- `npm run dev` - Start development server
+**Frontend (in `frontend/` directory):**
+- `npm run dev` - Start development server on port 3000
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript checks
 
+**Backend (in `backend/` directory):**
+- `PORT=3001 node src/server.js` - Start development server on port 3001
+- `npm start` - Start production server (if configured)
+
 ### Environment Variables
 
-Create a `.env.local` file with:
+**Frontend** - Create a `.env.local` file in `frontend/` directory:
 
 ```bash
 # Required: Dynamic.xyz Environment ID
@@ -192,6 +419,23 @@ EMAIL_SERVER_PORT=587
 EMAIL_SERVER_USER=your-email@gmail.com
 EMAIL_SERVER_PASSWORD=your-app-password
 EMAIL_FROM=your-email@gmail.com
+```
+
+**Backend** - Create a `.env` file in `backend/` directory:
+
+```bash
+# Required: Nero Testnet Configuration
+NERO_TESTNET_RPC=https://testnet-rpc.nerochain.io
+PAYMASTER_ADDRESS=0x5a6680dFd4a77FEea0A7be291147768EaA2414ad
+
+# Required: Server Configuration
+PORT=3001
+
+# Optional: Database Configuration (if using)
+DATABASE_URL=your-database-url
+
+# Optional: JWT Secret (if using authentication)
+JWT_SECRET=your-jwt-secret
 ```
 
 ## Deployment
@@ -223,17 +467,60 @@ The app can be deployed to any platform that supports Next.js:
 
 ### Common Issues
 
-1. **Dynamic Widget Not Loading**
+1. **Port Already in Use Errors**
+   ```
+   Error: listen EADDRINUSE: address already in use :::3000
+   ```
+   **Solution:**
+   ```bash
+   # Kill processes using the ports
+   lsof -ti:3000 | xargs kill -9
+   lsof -ti:3001 | xargs kill -9
+   
+   # Then restart servers in correct order
+   cd backend && PORT=3001 node src/server.js  # Terminal 1
+   cd frontend && npm run dev                   # Terminal 2
+   ```
+
+2. **Backend Not Respecting PORT Environment Variable**
+   - Use uppercase `PORT=3001` instead of lowercase `port=3001`
+   - The server.js file looks for `process.env.PORT`
+
+3. **Dynamic Widget Not Loading**
    - Check your Environment ID is correct
    - Ensure you're using the public environment ID (starts with `NEXT_PUBLIC_`)
 
-2. **Wallet Connection Issues**
+4. **Dynamic Labs CORS Errors**
+   ```
+   Access to fetch at 'https://app.dynamicauth.com/api/v0/sdk/...' blocked by CORS policy
+   ```
+   **Solution:**
+   - Go to your Dynamic Labs dashboard
+   - Navigate to Settings → Allowed Origins
+   - Add `http://localhost:3000` to the allowed origins list
+   - Save and restart your frontend server
+
+5. **API Errors: "unexpected token '<', '!DOCTYPE'..."**
+   - This means the frontend is receiving HTML instead of JSON
+   - Check that backend is running on port 3001
+   - Verify API URLs in frontend point to `http://localhost:3001`
+
+6. **Hydration Errors**
+   ```
+   Warning: Text content did not match. Server: "..." Client: "..."
+   ```
+   - This is resolved by using the ClientProvider wrapper
+   - Ensure Dynamic providers are only rendered on client-side
+
+7. **Wallet Connection Issues**
    - Make sure MetaMask is installed and unlocked
    - Check that you're on the correct network (Nero Testnet)
+   - Verify Dynamic Labs configuration includes wallet providers
 
-3. **Build Errors**
+8. **Build Errors**
    - Run `npm run type-check` to identify TypeScript issues
    - Ensure all environment variables are set
+   - Check that both frontend and backend dependencies are installed
 
 ### Getting Help
 
