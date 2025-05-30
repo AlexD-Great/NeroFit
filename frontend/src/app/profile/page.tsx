@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
+import { mockUserStats } from '@/data/mockData';
 
 interface UserProfile {
   id: string;
@@ -19,8 +20,8 @@ interface UserProfile {
   longestStreak: number;
   rank: number;
   badges: Badge[];
-  preferences: UserPreferences;
-  stats: UserStats;
+  achievements: Achievement[];
+  weeklyStats: WeeklyStats;
 }
 
 interface Badge {
@@ -31,19 +32,21 @@ interface Badge {
   earnedDate: string;
 }
 
-interface UserPreferences {
-  notifications: boolean;
-  emailUpdates: boolean;
-  publicProfile: boolean;
-  theme: 'dark' | 'light';
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  progress: number;
+  target: number;
+  reward: number;
+  completed: boolean;
 }
 
-interface UserStats {
-  totalDistance: number;
-  totalWorkouts: number;
-  totalMeditation: number;
-  favoriteCategory: string;
-  averageDaily: number;
+interface WeeklyStats {
+  workouts: number;
+  distance: number;
+  calories: number;
+  minutes: number;
 }
 
 export default function ProfilePage() {
@@ -67,7 +70,7 @@ export default function ProfilePage() {
       return;
     }
 
-    // Mock user profile data
+    // Mock user profile data using centralized stats
     const mockProfile: UserProfile = {
       id: 'user-1',
       name: user?.firstName || 'Fitness Enthusiast',
@@ -76,11 +79,11 @@ export default function ProfilePage() {
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || 'User')}&background=667eea&color=fff&size=120`,
       joinedDate: '2024-03-10',
       lastActive: '2024-03-15',
-      totalTokens: 420,
-      challengesCompleted: 15,
-      currentStreak: 5,
+      totalTokens: mockUserStats.totalTokens, // Use centralized data
+      challengesCompleted: mockUserStats.challengesCompleted, // Use centralized data
+      currentStreak: mockUserStats.currentStreak, // Use centralized data
       longestStreak: 12,
-      rank: 25,
+      rank: mockUserStats.rank, // Use centralized data
       badges: [
         {
           id: '1',
@@ -111,18 +114,12 @@ export default function ProfilePage() {
           earnedDate: '2024-03-13'
         }
       ],
-      preferences: {
-        notifications: true,
-        emailUpdates: true,
-        publicProfile: true,
-        theme: 'dark'
-      },
-      stats: {
-        totalDistance: 25.5,
-        totalWorkouts: 8,
-        totalMeditation: 180,
-        favoriteCategory: 'Cardio',
-        averageDaily: 2.1
+      achievements: [],
+      weeklyStats: {
+        workouts: 0,
+        distance: 0,
+        calories: 0,
+        minutes: 0
       }
     };
 
@@ -130,9 +127,9 @@ export default function ProfilePage() {
     setEditForm({
       name: mockProfile.name,
       email: mockProfile.email,
-      notifications: mockProfile.preferences.notifications,
-      emailUpdates: mockProfile.preferences.emailUpdates,
-      publicProfile: mockProfile.preferences.publicProfile
+      notifications: true,
+      emailUpdates: true,
+      publicProfile: true
     });
   }, [isAuthenticated, user, primaryWallet, router]);
 
@@ -143,13 +140,7 @@ export default function ProfilePage() {
     const updatedProfile = {
       ...profile,
       name: editForm.name,
-      email: editForm.email,
-      preferences: {
-        ...profile.preferences,
-        notifications: editForm.notifications,
-        emailUpdates: editForm.emailUpdates,
-        publicProfile: editForm.publicProfile
-      }
+      email: editForm.email
     };
 
     setProfile(updatedProfile);
@@ -351,24 +342,24 @@ export default function ProfilePage() {
               <h3 className="text-xl font-bold text-white mb-6">📊 Detailed Statistics</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">{profile.stats.totalDistance}km</div>
+                  <div className="text-2xl font-bold text-blue-400">{mockUserStats.totalDistance}km</div>
                   <div className="text-white/70 text-sm">Total Distance</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">{profile.stats.totalWorkouts}</div>
-                  <div className="text-white/70 text-sm">Workouts</div>
+                  <div className="text-2xl font-bold text-purple-400">{mockUserStats.weeklyWorkouts}</div>
+                  <div className="text-white/70 text-sm">Weekly Workouts</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-400">{profile.stats.totalMeditation}min</div>
-                  <div className="text-white/70 text-sm">Meditation</div>
+                  <div className="text-2xl font-bold text-green-400">{mockUserStats.totalMinutes}min</div>
+                  <div className="text-white/70 text-sm">Total Minutes</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold text-orange-400">{profile.stats.favoriteCategory}</div>
+                  <div className="text-lg font-bold text-orange-400">Cardio</div>
                   <div className="text-white/70 text-sm">Favorite Category</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-400">{profile.stats.averageDaily}</div>
-                  <div className="text-white/70 text-sm">Daily Average</div>
+                  <div className="text-2xl font-bold text-yellow-400">{(mockUserStats.totalMinutes / 7).toFixed(1)}</div>
+                  <div className="text-white/70 text-sm">Daily Average (min)</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-red-400">{profile.longestStreak}</div>

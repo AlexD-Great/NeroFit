@@ -6,15 +6,31 @@ import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
 import { 
   mockLeaderboardUsers, 
-  LeaderboardUser 
+  mockUserStats,
+  currentUser
 } from '@/data/mockData';
+
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  walletAddress: string;
+  totalTokens: number;
+  challengesCompleted: number;
+  rank: number;
+  avatar: string;
+  joinedDate: string;
+  lastActive: string;
+  badges: string[];
+  streak: number;
+}
 
 export default function LeaderboardPage() {
   const router = useRouter();
   const { user, primaryWallet } = useDynamicContext();
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
+  const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardUser[]>([]);
   const [timeFilter, setTimeFilter] = useState<'weekly' | 'monthly' | 'all-time'>('all-time');
   const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const isAuthenticated = !!(user || primaryWallet);
 
@@ -24,25 +40,25 @@ export default function LeaderboardPage() {
       return;
     }
 
-    // Use centralized data
-    setLeaderboardData(mockLeaderboardUsers);
-
-    // Set current user rank if authenticated
+    // Use mock data
+    setLeaderboardUsers(mockLeaderboardUsers);
+    
+    // Set current user rank using centralized data
     if (isAuthenticated) {
-      const currentUser: LeaderboardUser = {
+      const currentUserData: LeaderboardUser = {
         id: 'current',
         name: user?.firstName || 'You',
         walletAddress: primaryWallet?.address || '0x0000...0000',
-        totalTokens: 420,
-        challengesCompleted: 15,
-        rank: 25,
+        totalTokens: mockUserStats.totalTokens, // Use centralized data
+        challengesCompleted: mockUserStats.challengesCompleted, // Use centralized data
+        rank: mockUserStats.rank, // Use centralized data
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || 'You')}&background=667eea&color=fff&size=40`,
         joinedDate: '2024-03-10',
         lastActive: '2024-03-15',
         badges: ['🌟', '💪'],
-        streak: 5
+        streak: mockUserStats.currentStreak // Use centralized data
       };
-      setCurrentUserRank(currentUser);
+      setCurrentUserRank(currentUserData);
     }
   }, [isAuthenticated, user, primaryWallet, router]);
 
@@ -151,7 +167,7 @@ export default function LeaderboardPage() {
 
         {/* Top 3 Podium */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {leaderboardData.slice(0, 3).map((user, index) => (
+          {leaderboardUsers.slice(0, 3).map((user, index) => (
             <div
               key={user.id}
               className={`bg-white/10 backdrop-blur-lg rounded-xl p-6 border text-center ${
@@ -204,7 +220,7 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {leaderboardData.map((user) => (
+                {leaderboardUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="border-b border-white/10 hover:bg-white/5 transition-colors"
@@ -261,14 +277,14 @@ export default function LeaderboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 text-center">
             <div className="text-3xl mb-2">👥</div>
-            <div className="text-2xl font-bold text-white mb-1">{leaderboardData.length}</div>
+            <div className="text-2xl font-bold text-white mb-1">{leaderboardUsers.length}</div>
             <div className="text-white/70">Active Users</div>
           </div>
           
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 text-center">
             <div className="text-3xl mb-2">🏆</div>
             <div className="text-2xl font-bold text-white mb-1">
-              {leaderboardData.reduce((sum, user) => sum + user.challengesCompleted, 0)}
+              {leaderboardUsers.reduce((sum, user) => sum + user.challengesCompleted, 0)}
             </div>
             <div className="text-white/70">Total Challenges Completed</div>
           </div>
@@ -276,7 +292,7 @@ export default function LeaderboardPage() {
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 text-center">
             <div className="text-3xl mb-2">💰</div>
             <div className="text-2xl font-bold text-white mb-1">
-              {leaderboardData.reduce((sum, user) => sum + user.totalTokens, 0).toLocaleString()}
+              {leaderboardUsers.reduce((sum, user) => sum + user.totalTokens, 0).toLocaleString()}
             </div>
             <div className="text-white/70">Total FIT Distributed</div>
           </div>
