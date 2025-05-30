@@ -75,44 +75,12 @@ export default function DashboardPage() {
         throw new Error('No wallet address found');
       }
 
-      // Call backend API to claim tokens
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      console.log('Attempting to claim tokens:', { backendUrl, challengeId, reward, walletAddress });
-      
-      const response = await fetch(`${backendUrl}/api/challenges/claim-tokens`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress,
-          challengeId,
-          reward
-        })
-      });
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        console.error('Non-JSON response:', responseText);
-        throw new Error(`Expected JSON response but got: ${contentType}. Response: ${responseText.substring(0, 200)}...`);
-      }
-
-      const result = await response.json();
-      console.log('API response:', result);
-
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to claim tokens');
-      }
+      // For development: simulate successful token claiming
+      // TODO: Replace with actual backend call when blockchain connectivity is fixed
+      console.log('Simulating token claim:', { challengeId, reward, walletAddress });
       
       // Update challenge to mark as claimed
       const updatedChallenges = allChallenges.map(challenge => 
@@ -132,7 +100,7 @@ export default function DashboardPage() {
       }
       
       // Show success message
-      alert(`Successfully claimed ${reward} FIT tokens! Transaction: ${result.data?.transactionHash || 'N/A'}`);
+      alert(`Successfully claimed ${reward} FIT tokens! (Simulated - Backend blockchain connectivity pending)`);
       
     } catch (error) {
       console.error('Failed to claim tokens:', error);
