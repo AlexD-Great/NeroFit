@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Project documentation
+context.md
+ios/Flutter/Release.xcconfig
+ios/Podfile
+lib/services/wallet_service.dart
+macos/Flutter/Flutter-Debug.xcconfig
+macos/Flutter/Flutter-Release.xcconfig
+macos/Podfile
+macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+ios/Flutter/Debug.xcconfig
+devtools_options.yaml
+macos/Flutter/Flutter-Debug.xcconfig
