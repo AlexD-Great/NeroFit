@@ -4,6 +4,7 @@ import "./globals.css";
 import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
 import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 import { ToastProvider } from "@/providers/ToastProvider";
+import { WalletProvider } from "@/providers/WalletProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -66,11 +67,13 @@ export default function RootLayout({
             initialAuthenticationMode: 'connect-only',
           }}
         >
-          <ToastProvider>
-            <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-              {children}
-            </div>
-          </ToastProvider>
+          <WalletProvider>
+            <ToastProvider>
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+                {children}
+              </div>
+            </ToastProvider>
+          </WalletProvider>
         </DynamicContextProvider>
       </body>
     </html>

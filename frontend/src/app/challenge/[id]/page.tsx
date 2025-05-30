@@ -2,8 +2,9 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useWallet } from '@/providers/WalletProvider';
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useToast } from '@/providers/ToastProvider';
+import Header from '@/components/Header';
 
 interface Challenge {
   id: string;
@@ -25,15 +26,31 @@ interface Challenge {
 export default function ChallengePage() {
   const params = useParams();
   const router = useRouter();
-  const { isConnected, fitTokens } = useWallet();
+  const { user, primaryWallet } = useDynamicContext();
   const { showSuccess, showError, showInfo } = useToast();
   
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
   const [userProgress, setUserProgress] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  const isAuthenticated = !!(user || primaryWallet);
+  const challengeId = params?.id as string;
+
+  // Fix hydration issues by ensuring client-side only rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!mounted) return;
+
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     // Mock challenge data - in real app this would come from API
     const mockChallenges: Record<string, Challenge> = {
       '1': {
@@ -45,80 +62,28 @@ export default function ChallengePage() {
         difficulty: 'Easy',
         category: 'Cardio',
         timeLimit: '24 hours',
-        progress: 0,
+        progress: 60,
         completed: false,
         icon: '🚶‍♂️',
         tips: [
-          'Wear comfortable walking shoes',
-          'Start with a 5-minute warm-up walk',
-          'Maintain a steady pace throughout',
-          'Stay hydrated during your walk',
-          'Track your distance using a fitness app'
+          'Start with a gentle warm-up',
+          'Maintain a steady pace',
+          'Stay hydrated',
+          'Choose a safe, well-lit route',
+          'Wear comfortable walking shoes'
         ],
         requirements: [
           'Complete 1 kilometer of walking',
-          'Maintain an average pace of 4-6 km/h',
-          'Submit proof via fitness tracker or app'
+          'Track your distance using a fitness app',
+          'Submit proof of completion'
         ],
         estimatedTime: '10-15 minutes'
       },
       '2': {
         id: '2',
-        title: 'Run 3km',
-        description: 'Complete a 3 kilometer run',
-        longDescription: 'Running 3km is a great cardiovascular workout that builds endurance and burns calories. This moderate-distance run is perfect for intermediate fitness levels and helps improve your overall stamina and heart health.',
-        reward: 25,
-        difficulty: 'Medium',
-        category: 'Cardio',
-        timeLimit: '24 hours',
-        progress: 60,
-        completed: false,
-        icon: '🏃‍♂️',
-        tips: [
-          'Warm up with 5-10 minutes of light jogging',
-          'Pace yourself - aim for a conversational pace',
-          'Focus on your breathing rhythm',
-          'Cool down with walking and stretching',
-          'Listen to your body and rest if needed'
-        ],
-        requirements: [
-          'Complete 3 kilometers of running',
-          'Maintain a consistent running pace',
-          'Submit GPS tracking data'
-        ],
-        estimatedTime: '15-25 minutes'
-      },
-      '3': {
-        id: '3',
-        title: 'Drink 8 Glasses of Water',
-        description: 'Stay hydrated throughout the day',
-        longDescription: 'Proper hydration is essential for optimal body function. Drinking 8 glasses (about 2 liters) of water daily helps maintain energy levels, supports digestion, regulates body temperature, and keeps your skin healthy.',
-        reward: 15,
-        difficulty: 'Easy',
-        category: 'Wellness',
-        timeLimit: '24 hours',
-        progress: 100,
-        completed: true,
-        icon: '💧',
-        tips: [
-          'Start your day with a glass of water',
-          'Keep a water bottle with you',
-          'Set reminders to drink water regularly',
-          'Add lemon or cucumber for flavor',
-          'Monitor your urine color as a hydration indicator'
-        ],
-        requirements: [
-          'Drink 8 glasses (250ml each) of water',
-          'Spread consumption throughout the day',
-          'Log your water intake'
-        ],
-        estimatedTime: 'Throughout the day'
-      },
-      '4': {
-        id: '4',
         title: '30-Minute Workout',
         description: 'Complete a 30-minute strength training session',
-        longDescription: 'Strength training is crucial for building muscle mass, increasing bone density, and boosting metabolism. This 30-minute session should include exercises targeting major muscle groups for a comprehensive workout.',
+        longDescription: 'Strength training is essential for building muscle mass, improving bone density, and boosting metabolism. This 30-minute session will target major muscle groups and help you build functional strength for daily activities.',
         reward: 30,
         difficulty: 'Medium',
         category: 'Strength',
@@ -127,50 +92,24 @@ export default function ChallengePage() {
         completed: false,
         icon: '💪',
         tips: [
-          'Warm up with 5 minutes of light cardio',
-          'Focus on proper form over heavy weights',
-          'Include exercises for all major muscle groups',
+          'Warm up for 5 minutes before starting',
+          'Focus on proper form over speed',
           'Rest 30-60 seconds between sets',
-          'Cool down with stretching'
+          'Stay hydrated throughout',
+          'Cool down with light stretching'
         ],
         requirements: [
-          'Complete 30 minutes of strength training',
-          'Include upper and lower body exercises',
-          'Maintain proper form throughout'
+          'Complete 30 minutes of strength exercises',
+          'Include upper and lower body movements',
+          'Record your workout session'
         ],
         estimatedTime: '30 minutes'
       },
-      '5': {
-        id: '5',
-        title: '10,000 Steps',
-        description: 'Reach 10,000 steps today',
-        longDescription: 'The 10,000 steps challenge is a popular fitness goal that promotes daily physical activity. This target helps ensure you stay active throughout the day and can significantly improve your cardiovascular health and overall fitness.',
-        reward: 20,
-        difficulty: 'Medium',
-        category: 'Cardio',
-        timeLimit: '24 hours',
-        progress: 75,
-        completed: false,
-        icon: '👟',
-        tips: [
-          'Take the stairs instead of elevators',
-          'Park farther away from destinations',
-          'Take walking breaks during work',
-          'Walk while talking on the phone',
-          'Use a step counter or fitness tracker'
-        ],
-        requirements: [
-          'Accumulate 10,000 steps in one day',
-          'Steps can be from any activity',
-          'Verify with a fitness tracker or app'
-        ],
-        estimatedTime: 'Throughout the day'
-      },
-      '6': {
-        id: '6',
+      '3': {
+        id: '3',
         title: '15-Minute Meditation',
         description: 'Practice mindfulness for 15 minutes',
-        longDescription: 'Meditation is a powerful practice for mental wellness that reduces stress, improves focus, and promotes emotional well-being. This 15-minute session will help you develop mindfulness and inner peace.',
+        longDescription: 'Meditation is a powerful practice for reducing stress, improving focus, and enhancing overall mental well-being. This 15-minute session will help you develop mindfulness skills and create a sense of inner calm.',
         reward: 12,
         difficulty: 'Easy',
         category: 'Wellness',
@@ -182,63 +121,109 @@ export default function ChallengePage() {
           'Find a quiet, comfortable space',
           'Sit in a comfortable position',
           'Focus on your breath',
-          'Use a meditation app for guidance',
-          'Don&apos;t worry about &quot;perfect&quot; meditation'
+          'Don\'t judge your thoughts, just observe',
+          'Start with shorter sessions if needed'
         ],
         requirements: [
           'Meditate for 15 continuous minutes',
-          'Practice mindfulness or breathing exercises',
-          'Complete in a quiet environment'
+          'Use a meditation app or timer',
+          'Practice mindful breathing'
         ],
         estimatedTime: '15 minutes'
+      },
+      '4': {
+        id: '4',
+        title: 'Run 3km',
+        description: 'Complete a 3 kilometer run',
+        longDescription: 'Running is an excellent cardiovascular exercise that improves heart health, builds endurance, and burns calories. This 3km run challenge will help boost your fitness level and mental resilience.',
+        reward: 25,
+        difficulty: 'Medium',
+        category: 'Cardio',
+        timeLimit: '24 hours',
+        progress: 0,
+        completed: false,
+        icon: '🏃‍♂️',
+        tips: [
+          'Start with a 5-minute warm-up walk',
+          'Maintain a conversational pace',
+          'Land on the middle of your foot',
+          'Keep your arms relaxed',
+          'Cool down with walking and stretching'
+        ],
+        requirements: [
+          'Complete 3 kilometers of running',
+          'Track your distance and time',
+          'Submit your running data'
+        ],
+        estimatedTime: '15-25 minutes'
+      },
+      '5': {
+        id: '5',
+        title: '10,000 Steps',
+        description: 'Reach 10,000 steps today',
+        longDescription: 'The 10,000 steps challenge is a great way to increase your daily activity level. This goal encourages you to move more throughout the day, which can improve cardiovascular health and help maintain a healthy weight.',
+        reward: 20,
+        difficulty: 'Medium',
+        category: 'Cardio',
+        timeLimit: '24 hours',
+        progress: 75,
+        completed: false,
+        icon: '👟',
+        tips: [
+          'Take the stairs instead of elevators',
+          'Park further away from destinations',
+          'Take walking breaks during work',
+          'Walk while talking on the phone',
+          'Use a step counter or smartphone app'
+        ],
+        requirements: [
+          'Accumulate 10,000 steps in one day',
+          'Track steps using a device or app',
+          'Submit your step count'
+        ],
+        estimatedTime: 'Throughout the day'
       }
     };
 
-    const challengeData = mockChallenges[params.id as string];
-    if (challengeData) {
-      setChallenge(challengeData);
-      setUserProgress(challengeData.progress);
+    const foundChallenge = mockChallenges[challengeId];
+    if (foundChallenge) {
+      setChallenge(foundChallenge);
+      setUserProgress(foundChallenge.progress);
+    } else {
+      showError('Challenge not found');
+      router.push('/challenges');
     }
-  }, [params.id]);
+  }, [mounted, isAuthenticated, challengeId, router, showError]);
 
-  const handleStartChallenge = () => {
-    if (!isConnected) {
-      showError('Please connect your wallet first');
-      return;
-    }
-    showInfo('Challenge started! Good luck!');
-    // In real app, this would start tracking the challenge
-  };
-
-  const handleCompleteChallenge = () => {
+  const handleStartChallenge = async () => {
     if (!challenge) return;
     
-    setUserProgress(100);
-    setChallenge(prev => prev ? { ...prev, progress: 100, completed: true } : null);
-    setShowCongrats(true);
-    showSuccess('Congratulations! Challenge completed!');
+    setIsLoading(true);
+    showInfo('Starting challenge...');
+    
+    // Simulate API call
+    setTimeout(() => {
+      setUserProgress(10);
+      setChallenge(prev => prev ? { ...prev, progress: 10 } : null);
+      setIsLoading(false);
+      showSuccess('Challenge started! Good luck!');
+    }, 1000);
   };
 
-  const handleClaimReward = async () => {
-    if (!isConnected || !challenge) {
-      showError('Please connect your wallet first');
-      return;
-    }
-
+  const handleCompleteChallenge = async () => {
+    if (!challenge) return;
+    
     setIsLoading(true);
-    try {
-      // Simulate API call to claim reward
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      showSuccess(`Successfully claimed ${challenge.reward} FIT tokens!`);
-      setShowCongrats(false);
-      
-      // In real app, this would update the user's token balance
-    } catch {
-      showError('Failed to claim reward. Please try again.');
-    } finally {
+    showInfo('Completing challenge...');
+    
+    // Simulate API call
+    setTimeout(() => {
+      setUserProgress(100);
+      setChallenge(prev => prev ? { ...prev, progress: 100, completed: true } : null);
       setIsLoading(false);
-    }
+      setShowCongrats(true);
+      showSuccess(`Congratulations! You earned ${challenge.reward} FIT tokens!`);
+    }, 1500);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -260,122 +245,204 @@ export default function ChallengePage() {
     }
   };
 
-  if (!challenge) {
+  // Show loading state during hydration
+  if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="card text-center">
-          <div className="text-6xl mb-4">🔍</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Challenge Not Found</h2>
-          <p className="text-white/70 mb-6">The challenge you&apos;re looking for doesn&apos;t exist.</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-white/70">Loading challenge...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Access Denied</h2>
+          <p className="text-white/70 mb-6">Please log in to view challenges.</p>
           <button
-            onClick={() => router.push('/dashboard')}
-            className="btn-primary"
+            onClick={() => router.push('/login')}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
           >
-            Back to Dashboard
+            Go to Login
           </button>
         </div>
       </div>
     );
   }
 
+  if (!challenge) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">❌</div>
+            <h2 className="text-2xl font-bold text-white mb-4">Challenge Not Found</h2>
+            <p className="text-white/70 mb-6">The challenge you're looking for doesn't exist.</p>
+            <button
+              onClick={() => router.push('/challenges')}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
+            >
+              Browse Challenges
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center space-x-2 text-white/70 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19 12H5m7-7l-7 7 7 7"/>
-            </svg>
-            <span>Back to Dashboard</span>
-          </button>
-          
-          <div className="flex items-center space-x-4">
-            <div className={`px-3 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
-              {challenge.difficulty}
-            </div>
-            <div className={`px-3 py-1 rounded-full border ${getCategoryColor(challenge.category)}`}>
-              {challenge.category}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+      <Header />
+      
+      {/* Congratulations Modal */}
+      {showCongrats && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 max-w-md w-full text-center">
+            <div className="text-6xl mb-4">🎉</div>
+            <h3 className="text-2xl font-bold text-white mb-4">Congratulations!</h3>
+            <p className="text-white/80 mb-6">
+              You've successfully completed the "{challenge.title}" challenge and earned {challenge.reward} FIT tokens!
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowCongrats(false)}
+                className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-200"
+              >
+                Awesome!
+              </button>
+              <button
+                onClick={() => router.push('/challenges')}
+                className="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-6 rounded-lg font-medium transition-all duration-200"
+              >
+                Browse More Challenges
+              </button>
             </div>
           </div>
         </div>
+      )}
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Back Button */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center space-x-2 text-white/70 hover:text-white mb-6 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          <span>Back to Challenges</span>
+        </button>
 
         {/* Challenge Header */}
-        <div className="card mb-8">
-          <div className="flex items-start space-x-6">
-            <div className="text-6xl">{challenge.icon}</div>
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-white mb-4">{challenge.title}</h1>
-              <p className="text-xl text-white/80 mb-4">{challenge.description}</p>
-              <p className="text-white/70 leading-relaxed">{challenge.longDescription}</p>
+        <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 mb-8">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <div className="text-6xl">{challenge.icon}</div>
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">{challenge.title}</h1>
+                <p className="text-xl text-white/80">{challenge.description}</p>
+              </div>
             </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-yellow-400 mb-1">{challenge.reward} FIT</div>
+              <div className="text-white/60 text-sm">Reward</div>
+            </div>
+          </div>
+
+          {/* Challenge Badges */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <div className={`px-4 py-2 rounded-full border text-sm font-medium ${getDifficultyColor(challenge.difficulty)}`}>
+              {challenge.difficulty}
+            </div>
+            <div className={`px-4 py-2 rounded-full border text-sm font-medium ${getCategoryColor(challenge.category)}`}>
+              {challenge.category}
+            </div>
+            <div className="px-4 py-2 rounded-full border text-sm font-medium text-white/70 bg-white/10 border-white/20">
+              ⏰ {challenge.estimatedTime}
+            </div>
+            <div className="px-4 py-2 rounded-full border text-sm font-medium text-white/70 bg-white/10 border-white/20">
+              📅 {challenge.timeLimit}
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-2 mb-6">
+            <div className="flex justify-between text-sm">
+              <span className="text-white/70">Progress</span>
+              <span className="text-white">{userProgress}%</span>
+            </div>
+            <div className="w-full bg-white/20 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${userProgress}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex space-x-4">
+            {challenge.completed ? (
+              <div className="flex items-center space-x-2 text-green-400">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="font-semibold">Challenge Completed!</span>
+              </div>
+            ) : userProgress === 0 ? (
+              <button
+                onClick={handleStartChallenge}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
+              >
+                {isLoading ? 'Starting...' : 'Start Challenge'}
+              </button>
+            ) : (
+              <button
+                onClick={handleCompleteChallenge}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
+              >
+                {isLoading ? 'Completing...' : 'Complete Challenge'}
+              </button>
+            )}
+            
+            <button
+              onClick={() => router.push('/challenges')}
+              className="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200"
+            >
+              Browse More
+            </button>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Challenge Details */}
           <div className="space-y-6">
             
-            {/* Progress */}
-            <div className="card">
-              <h3 className="text-xl font-bold text-white mb-4">Progress</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/70">Completion</span>
-                  <span className="text-white font-semibold">{userProgress}%</span>
-                </div>
-                <div className="w-full bg-white/20 rounded-full h-3">
-                  <div 
-                    className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${userProgress}%` }}
-                  ></div>
-                </div>
-                {userProgress === 100 && (
-                  <div className="flex items-center space-x-2 text-green-400">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span className="font-medium">Challenge Completed!</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Challenge Info */}
-            <div className="card">
-              <h3 className="text-xl font-bold text-white mb-4">Challenge Details</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70">Reward</span>
-                  <span className="text-yellow-400 font-bold text-lg">{challenge.reward} FIT</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70">Time Limit</span>
-                  <span className="text-white">{challenge.timeLimit}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70">Estimated Time</span>
-                  <span className="text-white">{challenge.estimatedTime}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70">Category</span>
-                  <span className="text-white">{challenge.category}</span>
-                </div>
-              </div>
+            {/* Description */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-bold text-white mb-4">📝 Description</h3>
+              <p className="text-white/80 leading-relaxed">{challenge.longDescription}</p>
             </div>
 
             {/* Requirements */}
-            <div className="card">
-              <h3 className="text-xl font-bold text-white mb-4">Requirements</h3>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-bold text-white mb-4">✅ Requirements</h3>
               <ul className="space-y-2">
                 {challenge.requirements.map((requirement, index) => (
                   <li key={index} className="flex items-start space-x-3">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
                     <span className="text-white/80">{requirement}</span>
                   </li>
                 ))}
@@ -383,17 +450,17 @@ export default function ChallengePage() {
             </div>
           </div>
 
-          {/* Tips and Actions */}
+          {/* Tips and Info */}
           <div className="space-y-6">
             
             {/* Tips */}
-            <div className="card">
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
               <h3 className="text-xl font-bold text-white mb-4">💡 Tips for Success</h3>
               <ul className="space-y-3">
                 {challenge.tips.map((tip, index) => (
                   <li key={index} className="flex items-start space-x-3">
                     <div className="w-6 h-6 bg-yellow-400/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-yellow-400 text-xs font-bold">{index + 1}</span>
+                      <span className="text-yellow-400 text-xs">💡</span>
                     </div>
                     <span className="text-white/80">{tip}</span>
                   </li>
@@ -401,99 +468,35 @@ export default function ChallengePage() {
               </ul>
             </div>
 
-            {/* Actions */}
-            <div className="card">
-              <h3 className="text-xl font-bold text-white mb-4">Actions</h3>
+            {/* Challenge Stats */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-bold text-white mb-4">📊 Challenge Stats</h3>
               <div className="space-y-4">
-                
-                {!challenge.completed && userProgress < 100 && (
-                  <>
-                    <button
-                      onClick={handleStartChallenge}
-                      className="w-full btn-primary"
-                      disabled={!isConnected}
-                    >
-                      {isConnected ? 'Start Challenge' : 'Connect Wallet to Start'}
-                    </button>
-                    
-                    {/* Simulate Progress Button (for demo) */}
-                    <button
-                      onClick={handleCompleteChallenge}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition-colors"
-                    >
-                      🎯 Complete Challenge (Demo)
-                    </button>
-                  </>
-                )}
-
-                {challenge.completed && (
-                  <button
-                    onClick={handleClaimReward}
-                    disabled={isLoading}
-                    className="w-full btn-primary disabled:opacity-50"
-                  >
-                    {isLoading ? 'Claiming Reward...' : `Claim ${challenge.reward} FIT Tokens`}
-                  </button>
-                )}
-
-                <div className="text-center text-white/60 text-sm">
-                  {!isConnected && 'Connect your wallet to participate in challenges'}
-                  {isConnected && !challenge.completed && 'Complete the challenge to earn FIT tokens'}
-                  {isConnected && challenge.completed && 'Claim your reward using gasless transactions'}
+                <div className="flex justify-between">
+                  <span className="text-white/70">Difficulty Level</span>
+                  <span className="text-white font-medium">{challenge.difficulty}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/70">Category</span>
+                  <span className="text-white font-medium">{challenge.category}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/70">Estimated Time</span>
+                  <span className="text-white font-medium">{challenge.estimatedTime}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/70">Time Limit</span>
+                  <span className="text-white font-medium">{challenge.timeLimit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/70">FIT Reward</span>
+                  <span className="text-yellow-400 font-bold">{challenge.reward} FIT</span>
                 </div>
               </div>
             </div>
-
-            {/* Wallet Status */}
-            {isConnected && (
-              <div className="card bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-white font-medium">Wallet Connected</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-white font-bold">{fitTokens} FIT</div>
-                    <div className="text-white/70 text-sm">Current Balance</div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
-
-      {/* Congratulations Modal */}
-      {showCongrats && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md mx-auto text-center animate-bounce">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-3xl font-bold text-white mb-4">Congratulations!</h2>
-            <p className="text-white/80 mb-6">
-              You&apos;ve successfully completed the <strong>{challenge.title}</strong> challenge!
-            </p>
-            <div className="bg-gradient-to-r from-yellow-400/20 to-orange-500/20 rounded-lg p-4 mb-6 border border-yellow-400/30">
-              <div className="text-2xl font-bold text-yellow-400">{challenge.reward} FIT Tokens</div>
-              <div className="text-white/70">Ready to claim</div>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowCongrats(false)}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleClaimReward}
-                disabled={isLoading}
-                className="flex-1 btn-primary disabled:opacity-50"
-              >
-                {isLoading ? 'Claiming...' : 'Claim Reward'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
