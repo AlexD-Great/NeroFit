@@ -1,226 +1,255 @@
-# NeroFit - Fitness Rewards DApp
+# NeroFit - Fitness Rewards on Nero Blockchain
 
-NeroFit is a decentralized fitness application that rewards users with FIT tokens for completing fitness challenges. Built on the Nero blockchain with gasless transactions via Nero Paymaster.
+NeroFit is a Web3 fitness application that rewards users with FIT tokens for completing fitness challenges. Built with Next.js and integrated with the Nero blockchain testnet using Dynamic.xyz for seamless wallet and social authentication.
 
-## 🏗️ Architecture
+## Features
 
-- **Frontend**: Next.js 15 with TypeScript, Tailwind CSS
-- **Backend**: Node.js with Express, ethers.js for blockchain integration (Live on Render)
-- **Blockchain**: Nero Testnet with smart contract integration
-- **Wallet**: MetaMask integration with gasless transactions
+- 🏃‍♂️ **Fitness Challenges**: Complete daily fitness tasks to earn FIT tokens
+- 💰 **FIT Token Rewards**: Earn cryptocurrency for staying active
+- 🔗 **Multi-Auth Support**: Connect via 500+ wallets, social login, or email
+- 📊 **Progress Tracking**: Monitor your fitness journey and token earnings
+- 🏆 **Leaderboards**: Compete with other users globally
+- 🎯 **Achievement System**: Unlock badges and milestones
+- 🌐 **Nero Blockchain**: Built on the fast and efficient Nero testnet
 
-## 🚀 Quick Start
+## Tech Stack
+
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Authentication**: Dynamic.xyz (wallet + social + email)
+- **Blockchain**: Nero Testnet (EVM-compatible)
+- **Web3**: Wagmi, Viem
+- **State Management**: React Query
+
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- MetaMask browser extension
-- Git
+- A Dynamic.xyz account (free)
 
-### 1. Clone and Setup
+### Installation
 
-```bash
-git clone <repository-url>
-cd NeroFit
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/nerofit.git
+   cd nerofit/frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up Dynamic.xyz**
+   - Go to [Dynamic.xyz](https://app.dynamic.xyz) and create a free account
+   - Create a new project
+   - Copy your Environment ID from the dashboard
+
+4. **Configure environment variables**
+   Create a `.env.local` file in the frontend directory:
+   ```bash
+   # Dynamic.xyz Configuration
+   NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID=your-dynamic-environment-id
+   ```
+
+5. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## Dynamic.xyz Setup Guide
+
+### 1. Create Dynamic Account
+- Visit [Dynamic.xyz](https://app.dynamic.xyz)
+- Sign up for a free account
+- Create a new project
+
+### 2. Configure Wallet Providers
+In your Dynamic dashboard:
+- Go to **Configurations** → **Wallet Connectors**
+- Enable the wallet providers you want (MetaMask, WalletConnect, etc.)
+- Dynamic supports 500+ wallets out of the box
+
+### 3. Configure Social Providers (Optional)
+- Go to **Configurations** → **Social Providers**
+- Enable Google, Twitter, Discord, etc.
+- Add your OAuth credentials for each provider
+
+### 4. Configure Email Authentication (Optional)
+- Go to **Configurations** → **Email**
+- Enable email authentication for passwordless login
+- Configure your SMTP settings
+
+### 5. Add Custom Network (Nero Testnet)
+The app automatically configures Nero Testnet with these parameters:
+- **Network Name**: NERO Chain Testnet
+- **RPC URL**: https://rpc-testnet.nerochain.io
+- **Chain ID**: 689
+- **Currency**: NERO
+- **Explorer**: https://testnet.neroscan.io
+
+## Nero Testnet Information
+
+| Parameter | Value |
+|-----------|-------|
+| Network Name | NERO Chain Testnet |
+| RPC Endpoint | https://rpc-testnet.nerochain.io |
+| Chain ID | 689 |
+| Currency Symbol | NERO |
+| Block Explorer | https://testnet.neroscan.io |
+| WebSocket | wss://ws-testnet.nerochain.io |
+
+## Authentication Methods
+
+NeroFit supports multiple authentication methods through Dynamic.xyz:
+
+### 1. Wallet Connection
+- **MetaMask**: Most popular Ethereum wallet
+- **WalletConnect**: Connect 500+ mobile and desktop wallets
+- **Coinbase Wallet**: Built-in browser wallet
+- **And many more**: Dynamic supports the largest wallet ecosystem
+
+### 2. Social Login
+- **Google**: Quick OAuth login
+- **Twitter**: Social authentication
+- **Discord**: Gaming community integration
+- **Apple**: iOS-friendly authentication
+
+### 3. Email Authentication
+- **Magic Links**: Passwordless email authentication
+- **Embedded Wallets**: Create wallets for users automatically
+- **Progressive Web3**: Start with email, upgrade to wallet later
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── app/                 # Next.js app router
+│   │   ├── dashboard/       # Main dashboard page
+│   │   ├── login/          # Authentication page
+│   │   └── layout.tsx      # Root layout with providers
+│   ├── components/         # Reusable UI components
+│   ├── hooks/              # Custom React hooks
+│   │   └── useDynamicAuth.ts # Dynamic authentication hook
+│   ├── lib/                # Utility libraries
+│   │   ├── dynamic.ts      # Dynamic.xyz configuration
+│   │   └── wagmi.ts        # Wagmi configuration for Nero
+│   ├── providers/          # React context providers
+│   │   ├── DynamicProvider.tsx # Dynamic + Wagmi provider
+│   │   └── ToastProvider.tsx   # Toast notifications
+│   └── types/              # TypeScript type definitions
+├── public/                 # Static assets
+└── package.json           # Dependencies and scripts
 ```
 
-### 2. Frontend Setup (Integrated with Live Backend)
+## Key Features Explained
 
-```bash
-npm install
-```
+### Multi-Authentication Support
+- **Wallet Users**: Full Web3 experience with direct token claiming
+- **Social Users**: Easy onboarding with progressive Web3 features
+- **Email Users**: Passwordless authentication with embedded wallets
 
-Create a `.env.local` file in the root directory:
+### Nero Blockchain Integration
+- **EVM Compatible**: Use familiar Ethereum tools and libraries
+- **Fast & Cheap**: Low transaction fees and quick confirmations
+- **Testnet Ready**: Safe environment for testing and development
 
-```env
-# Backend API URL (live on Render)
-NEXT_PUBLIC_API_URL=https://nerofit.onrender.com
+### Dynamic.xyz Benefits
+- **500+ Wallets**: Largest wallet support in the industry
+- **Social Login**: Familiar authentication for Web2 users
+- **Embedded Wallets**: Create wallets for users automatically
+- **Progressive Web3**: Start simple, add complexity as needed
 
-# Nero Blockchain Configuration
-NEXT_PUBLIC_NERO_CHAIN_ID=1337
-NEXT_PUBLIC_NERO_TESTNET_RPC=https://testnet.nerochain.io
+## Development
 
-# Paymaster Configuration (for gasless transactions)
-NEXT_PUBLIC_PAYMASTER_ADDRESS=0x9876543210987654321098765432109876543210
-```
+### Available Scripts
 
-### 3. Start Frontend (Connected to Live Backend)
-
-```bash
-npm run dev
-```
-
-The app will be available at http://localhost:3000 and will automatically connect to the live backend at https://nerofit.onrender.com
-
-## 🌐 Live Backend Integration
-
-The app is fully integrated with a live backend deployed on Render:
-
-- **Backend URL**: https://nerofit.onrender.com
-- **Health Check**: https://nerofit.onrender.com/health
-- **API Documentation**: https://nerofit.onrender.com/
-
-### Backend API Endpoints
-
-- `POST /api/connect-wallet` - Connect and verify wallet with smart contract integration
-- `GET /api/user-data/:address` - Fetch user data and token balance
-- `POST /api/claim-tokens` - Claim FIT tokens via gasless transactions
-- `GET /health` - Health check endpoint
-
-## 📱 Features
-
-### 🎯 Challenge System
-- **6 Fitness Challenges**: Walk, Run, Hydration, Strength Training, Steps, Meditation
-- **Progress Tracking**: Real-time progress bars and completion status
-- **Difficulty Levels**: Easy, Medium, Hard challenges
-- **Categories**: Cardio, Strength, Wellness, Endurance
-
-### 💰 Token Rewards
-- **FIT Tokens**: Earn tokens for completing challenges
-- **Gasless Transactions**: Powered by Nero Paymaster
-- **Smart Contract Integration**: Secure token claiming via live backend
-- **Real-time Balance**: Live token balance updates
-
-### 👤 User Dashboard
-- **4 Main Sections**: Challenges, Profile, Leaderboard, History
-- **User Stats**: Challenges completed, tokens earned, streak tracking
-- **Global Leaderboard**: Compete with other users
-- **Achievement System**: Unlock achievements for milestones
-- **Challenge History**: Track your fitness journey
-
-### 🔗 Wallet Integration
-- **MetaMask Support**: Seamless wallet connection
-- **Multi-network**: Nero Testnet support
-- **Signature Verification**: Secure authentication via backend
-- **Connection Status**: Real-time connection monitoring
-
-## 🛠️ Technical Implementation
-
-### Frontend Architecture
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── page.tsx           # Onboarding page
-│   ├── login/page.tsx     # Authentication
-│   ├── dashboard/page.tsx # Main dashboard
-│   └── challenge/[id]/    # Challenge details
-├── components/            # Reusable components
-│   └── Toast.tsx         # Notification system
-├── providers/            # React Context providers
-│   ├── WalletProvider.tsx # Wallet state management
-│   └── ToastProvider.tsx  # Toast notifications
-└── services/             # API services
-    └── api.ts            # Backend integration
-```
-
-### Backend Integration
-
-The frontend seamlessly integrates with the live backend through:
-
-- **API Service Layer**: Comprehensive backend communication
-- **Health Monitoring**: Real-time backend connectivity checks
-- **Fallback Modes**: Graceful degradation when backend is unavailable
-- **Error Handling**: Comprehensive error recovery
-- **Toast Notifications**: User feedback for all operations
-
-## 🔧 Development
-
-### Frontend Development
-
-```bash
-npm run dev     # Start development server (connects to live backend)
-npm run build   # Build for production
-npm run lint    # Run ESLint
-```
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript checks
 
 ### Environment Variables
 
-#### Frontend (.env.local)
-```env
-NEXT_PUBLIC_API_URL=https://nerofit.onrender.com
-NEXT_PUBLIC_NERO_CHAIN_ID=1337
-NEXT_PUBLIC_NERO_TESTNET_RPC=https://testnet.nerochain.io
-NEXT_PUBLIC_PAYMASTER_ADDRESS=0x9876543210987654321098765432109876543210
+Create a `.env.local` file with:
+
+```bash
+# Required: Dynamic.xyz Environment ID
+NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID=your-environment-id
+
+# Optional: If using social authentication
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Optional: If using email authentication
+EMAIL_SERVER_HOST=smtp.gmail.com
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_USER=your-email@gmail.com
+EMAIL_SERVER_PASSWORD=your-app-password
+EMAIL_FROM=your-email@gmail.com
 ```
 
-## 🎮 User Flow
+## Deployment
 
-1. **Onboarding**: Welcome page with app overview
-2. **Authentication**: Connect MetaMask wallet (verified via backend)
-3. **Dashboard**: View challenges, profile, leaderboard
-4. **Challenge Selection**: Choose from 6 fitness challenges
-5. **Challenge Completion**: Complete fitness activities
-6. **Reward Claiming**: Claim FIT tokens via gasless transactions (backend-powered)
-7. **Progress Tracking**: Monitor stats and achievements
+### Vercel (Recommended)
 
-## 🔐 Security Features
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy automatically on every push
 
-- **Signature Verification**: Cryptographic wallet verification via backend
-- **Smart Contract Integration**: Secure token operations through live backend
-- **Gasless Transactions**: Sponsored by Nero Paymaster
-- **Input Validation**: Comprehensive data validation
-- **Error Handling**: Graceful error management
+### Other Platforms
 
-## 🌐 Deployment Status
+The app can be deployed to any platform that supports Next.js:
+- Netlify
+- Railway
+- DigitalOcean App Platform
+- AWS Amplify
 
-### Frontend
-- **Development**: http://localhost:3000
-- **Production**: Ready for deployment to Vercel/Netlify
-
-### Backend (Live)
-- **Production**: https://nerofit.onrender.com ✅
-- **Status**: Fully operational with smart contract integration
-- **Health**: https://nerofit.onrender.com/health
-
-## 🧪 Testing
-
-The app includes comprehensive testing capabilities:
-
-- **Live Backend**: Fully integrated with production backend
-- **Demo Mode**: Graceful fallback when backend is unavailable
-- **Health Monitoring**: Real-time backend status checking
-- **Error Recovery**: Comprehensive error handling
-- **Connection Monitoring**: Real-time status updates
-
-## 📊 Smart Contract Integration
-
-The app integrates with Nero blockchain smart contracts through the live backend:
-
-- **User Registration**: Register users on-chain via `/api/connect-wallet`
-- **Challenge Completion**: Record challenge completions
-- **Token Distribution**: Distribute FIT tokens as rewards via `/api/claim-tokens`
-- **Gasless Transactions**: Sponsored by Nero Paymaster
-
-## 🚀 Getting Started (Quick)
-
-1. **Clone the repository**
-2. **Install dependencies**: `npm install`
-3. **Create `.env.local`** with the backend URL: `NEXT_PUBLIC_API_URL=https://nerofit.onrender.com`
-4. **Start the app**: `npm run dev`
-5. **Connect MetaMask** and start earning FIT tokens!
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with live backend integration
-5. Submit a pull request
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-## 📄 License
+## Troubleshooting
 
-This project is licensed under the MIT License.
+### Common Issues
 
-## 🆘 Support
+1. **Dynamic Widget Not Loading**
+   - Check your Environment ID is correct
+   - Ensure you're using the public environment ID (starts with `NEXT_PUBLIC_`)
 
-For support and questions:
-- Check the GitHub issues
-- Review the documentation
-- Test with live backend at https://nerofit.onrender.com
+2. **Wallet Connection Issues**
+   - Make sure MetaMask is installed and unlocked
+   - Check that you're on the correct network (Nero Testnet)
 
----
+3. **Build Errors**
+   - Run `npm run type-check` to identify TypeScript issues
+   - Ensure all environment variables are set
 
-**Built with ❤️ for the Nero ecosystem - Fully integrated with live backend!**
+### Getting Help
+
+- Check the [Dynamic.xyz Documentation](https://docs.dynamic.xyz)
+- Visit the [Nero Blockchain Documentation](https://docs.nerochain.io)
+- Open an issue on GitHub
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [Dynamic.xyz](https://dynamic.xyz) for amazing Web3 authentication
+- [Nero Blockchain](https://nerochain.io) for the fast EVM-compatible network
+- [Next.js](https://nextjs.org) for the excellent React framework
+- [Tailwind CSS](https://tailwindcss.com) for beautiful styling
 
 

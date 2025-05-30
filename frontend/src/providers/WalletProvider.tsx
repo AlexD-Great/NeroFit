@@ -55,10 +55,21 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         if (accounts.length > 0) {
           setWalletAddress(accounts[0]);
           setIsConnected(true);
+          
+          // Store wallet connection state for AuthProvider
+          localStorage.setItem('walletConnected', 'true');
+          localStorage.setItem('walletAddress', accounts[0]);
+          
           await fetchUserData(accounts[0]);
+        } else {
+          // Clear localStorage if no accounts found
+          localStorage.removeItem('walletConnected');
+          localStorage.removeItem('walletAddress');
         }
       } catch (error) {
         console.error('Error checking wallet connection:', error);
+        localStorage.removeItem('walletConnected');
+        localStorage.removeItem('walletAddress');
       }
     }
   }, [fetchUserData]);
@@ -89,6 +100,10 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       const address = accounts[0];
       setWalletAddress(address);
       setIsConnected(true);
+      
+      // Store wallet connection state for AuthProvider
+      localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletAddress', address);
 
       // Register wallet with backend
       await registerWallet(address);
@@ -108,6 +123,10 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     setWalletAddress(null);
     setFitTokens(0);
     setError(null);
+    
+    // Clear wallet connection state from localStorage
+    localStorage.removeItem('walletConnected');
+    localStorage.removeItem('walletAddress');
   };
 
   const registerWallet = async (address: string) => {

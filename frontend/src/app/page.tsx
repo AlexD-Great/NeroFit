@@ -102,7 +102,7 @@ export default function OnboardingPage() {
           </button>
           
           <p className="text-white/60 text-sm">
-            Connect your wallet and start earning rewards today
+            Login and start earning rewards today
           </p>
         </div>
 
