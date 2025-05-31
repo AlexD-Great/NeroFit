@@ -3,27 +3,62 @@
 import NeroWidget from "@/components/NeroWidget";
 import { useNeroContext } from "@/providers/NeroProvider";
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 export default function LoginPage() {
-  const { user, isConnected, walletAddress } = useNeroContext();
+  const { user, isConnected, walletAddress, isLoading, primaryWallet } = useNeroContext();
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Hydration protection
   useEffect(() => {
-    // Redirect to dashboard if user is authenticated
-    if (isConnected && (user || walletAddress)) {
-      console.log('Login: User authenticated, redirecting to dashboard');
-      console.log('isConnected:', isConnected, 'user:', user, 'walletAddress:', walletAddress);
+    setIsMounted(true);
+  }, []);
+
+  // Simple authentication check and redirect
+  useEffect(() => {
+    if (!isMounted || isLoading) {
+      return;
+    }
+
+    // Check if user is authenticated
+    const isAuthenticated = isConnected && (primaryWallet?.address || walletAddress);
+    
+    console.log('Login: Authentication check:', {
+      isMounted,
+      isLoading,
+      isConnected,
+      primaryWallet: primaryWallet?.address,
+      walletAddress,
+      isAuthenticated
+    });
+
+    if (isAuthenticated) {
+      console.log('Login: User is authenticated, redirecting to dashboard');
       router.push('/dashboard');
     }
-  }, [isConnected, user, walletAddress, router]);
+  }, [isMounted, isConnected, primaryWallet?.address, walletAddress, isLoading, router]);
 
-  const handleConnect = () => {
-    console.log('Login: Connection successful, checking redirect...');
-  };
+  const handleConnect = useCallback(() => {
+    console.log('Login: Connection callback triggered - refreshing page to ensure proper state');
+    
+    // Simple page refresh after connection to ensure authentication state is properly loaded
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000); // Small delay to allow connection to complete
+  }, []);
+
+  // Don't render anything until mounted
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">

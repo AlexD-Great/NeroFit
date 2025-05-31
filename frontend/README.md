@@ -6,7 +6,8 @@ A modern, responsive fitness rewards application built with Next.js, TypeScript,
 
 - 🎯 **Fitness Challenges**: Complete daily challenges to earn FIT tokens
 - 💰 **Crypto Rewards**: Earn real cryptocurrency rewards for staying active
-- 🔗 **MetaMask Integration**: Connect your wallet for seamless Web3 experience
+- 🔗 **NERO Wallet Integration**: Connect with Google or MetaMask for seamless Web3 experience
+- 🔐 **Social Login**: Sign in with Google for gasless transactions
 - ⛽ **Gasless Transactions**: Claim rewards without paying gas fees
 - 📱 **Responsive Design**: Beautiful UI that works on all devices
 - 🎨 **Modern UI/UX**: Built with Tailwind CSS and modern design principles
@@ -16,7 +17,8 @@ A modern, responsive fitness rewards application built with Next.js, TypeScript,
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **Web3**: ethers.js for blockchain interaction
+- **Web3**: ethers.js + Web3Auth for blockchain interaction
+- **Authentication**: NERO Wallet with Google OAuth and MetaMask support
 - **State Management**: React Context API
 - **Deployment**: Vercel (recommended)
 
@@ -26,7 +28,7 @@ A modern, responsive fitness rewards application built with Next.js, TypeScript,
 
 - Node.js 18+ 
 - npm or yarn
-- MetaMask browser extension
+- MetaMask browser extension (optional if using Google login)
 
 ### Installation
 
@@ -47,11 +49,32 @@ cp .env.example .env.local
 ```
 
 4. Update environment variables in `.env.local`:
+
+#### Required Variables
 ```env
 NEXT_PUBLIC_API_URL=https://nerofit.onrender.com
-NEXT_PUBLIC_NERO_TESTNET_RPC=https://testnet.nerochain.io
-NEXT_PUBLIC_PAYMASTER_ADDRESS=0x1234567890123456789012345678901234567890
 ```
+
+#### Optional Variables (for enhanced features)
+```env
+# Web3Auth Configuration for Social Login (Optional)
+# Get your client ID from https://dashboard.web3auth.io/
+NEXT_PUBLIC_WEB3AUTH_CLIENT_ID=your_web3auth_client_id
+
+# Google OAuth Configuration (Optional - for social login)
+# Get from Google Cloud Console
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+
+# Facebook OAuth Configuration (Optional - for social login)
+# Get from Facebook Developers
+NEXT_PUBLIC_FACEBOOK_CLIENT_ID=your_facebook_client_id
+
+# NERO Chain Paymaster API Key (Optional - for gasless transactions)
+# Get from NERO Chain team
+NEXT_PUBLIC_PAYMASTER_API_KEY=your_paymaster_api_key
+```
+
+**Note**: If Web3Auth Client ID is not provided, the app will automatically fall back to MetaMask-only mode.
 
 5. Start the development server:
 ```bash
@@ -59,6 +82,37 @@ npm run dev
 ```
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Authentication Setup
+
+### Google Authentication (Optional)
+
+To enable Google sign-in for gasless transactions:
+
+1. **Create Web3Auth Project**:
+   - Go to [Web3Auth Dashboard](https://dashboard.web3auth.io/)
+   - Create a new project
+   - Copy the Client ID to `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID`
+
+2. **Setup Google OAuth**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing
+   - Enable Google+ API
+   - Create OAuth 2.0 credentials
+   - Add your domain to authorized origins
+   - Copy Client ID to `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+
+3. **Configure Web3Auth**:
+   - In Web3Auth dashboard, add Google as a login provider
+   - Use the Google Client ID from step 2
+   - Set verifier name to match NERO configuration
+
+### MetaMask Only Mode
+
+If you don't set up Google authentication, the app will work with MetaMask only:
+- Users can connect with MetaMask wallet
+- All transactions will require gas fees
+- No social login features
 
 ## Project Structure
 
@@ -72,8 +126,17 @@ frontend/
 │   │   ├── globals.css         # Global styles
 │   │   ├── layout.tsx          # Root layout
 │   │   └── page.tsx            # Home/onboarding page
+│   ├── components/             # React components
+│   │   └── NeroWidget.tsx      # NERO wallet connection widget
+│   ├── hooks/                  # Custom React hooks
+│   │   ├── useNeroWallet.ts    # NERO wallet integration
+│   │   ├── useConfig.ts        # Configuration management
+│   │   └── useSendUserOp.ts    # UserOperation handling
 │   ├── providers/              # React Context providers
-│   │   └── WalletProvider.tsx  # Wallet state management
+│   │   ├── NeroProvider.tsx    # NERO wallet state management
+│   │   └── WalletProvider.tsx  # Legacy wallet provider
+│   ├── config/                 # Configuration files
+│   │   └── nerowallet.config.ts # NERO wallet configuration
 │   └── types/                  # TypeScript type definitions
 │       └── ethereum.d.ts       # Ethereum/MetaMask types
 ├── public/                     # Static assets
@@ -88,25 +151,27 @@ frontend/
 ### Pages
 
 - **Onboarding (`/`)**: Welcome page with app introduction
-- **Login (`/login`)**: Authentication with MetaMask, Google, or email
+- **Login (`/login`)**: Authentication with Google or MetaMask
 - **Dashboard (`/dashboard`)**: Main app interface with challenges and stats
 - **Challenge (`/challenge/[id]`)**: Individual challenge details and completion
 
-### Features
+### NERO Wallet Features
 
-- **Wallet Integration**: Connect/disconnect MetaMask wallet
-- **Challenge System**: 4 different fitness challenges with varying difficulties
-- **Token Management**: View and claim FIT token rewards
-- **Progress Tracking**: Visual progress indicators and completion status
-- **Responsive Design**: Mobile-first design that scales to desktop
+- **Social Login**: Sign in with Google for seamless onboarding
+- **MetaMask Support**: Traditional wallet connection for crypto users
+- **Account Abstraction**: Gasless transactions with paymaster
+- **Multi-Chain**: Automatic NERO testnet configuration
+- **Responsive UI**: Mobile-first wallet connection interface
 
 ## Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `https://nerofit.onrender.com` |
-| `NEXT_PUBLIC_NERO_TESTNET_RPC` | Nero testnet RPC URL | `https://testnet.nerochain.io` |
-| `NEXT_PUBLIC_PAYMASTER_ADDRESS` | Paymaster contract address | `0x123...` |
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | Yes | `https://nerofit.onrender.com` |
+| `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID` | Web3Auth client ID | No | `BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ` |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth client ID | No | `123456789-abc.apps.googleusercontent.com` |
+| `NEXT_PUBLIC_FACEBOOK_CLIENT_ID` | Facebook app ID | No | `1234567890123456` |
+| `NEXT_PUBLIC_PAYMASTER_API_KEY` | NERO paymaster API key | No | `your_api_key_here` |
 
 ## Available Scripts
 
@@ -141,6 +206,23 @@ Backend repository: [NeroFit Backend](https://github.com/AlexD-Great/nero_backen
 npm run build
 npm run start
 ```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Web3Auth not initialized"**: Make sure `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID` is set correctly
+2. **Google login fails**: Check Google OAuth configuration and authorized domains
+3. **MetaMask connection timeout**: Ensure MetaMask is unlocked and check for popup blockers
+4. **Network issues**: App automatically switches to NERO testnet, but manual network addition may be required
+
+### Debug Mode
+
+Enable debug logging by opening browser console. The app logs detailed information about:
+- Wallet connection attempts
+- Network switching
+- Authentication flows
+- Error states
 
 ## Contributing
 

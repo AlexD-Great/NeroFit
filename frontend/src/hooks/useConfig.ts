@@ -1,37 +1,39 @@
 "use client";
 
 import { useMemo } from 'react';
-import config from '../config/nerowallet.config';
+import config, { NERO_CHAIN_CONFIG, AA_PLATFORM_CONFIG, CONTRACT_ADDRESSES } from '../config/nerowallet.config';
 
-// useConfig hook following NERO's high-level documentation pattern
+// NERO Configuration Hook following their high-level documentation
 export const useConfig = () => {
   return useMemo(() => {
-    console.log('useConfig: Loading configuration...');
-    console.log('useConfig: Raw config:', config);
+    console.log('NERO Config: Loading configuration...');
+    console.log('Web3Auth Client ID available:', !!config.web3auth?.clientId);
+    console.log('Chain ID:', NERO_CHAIN_CONFIG.chainId);
+    console.log('RPC URL:', NERO_CHAIN_CONFIG.rpcUrl);
     
-    const configData = {
-      // Direct access to RPC URL for read operations
-      rpcUrl: config.rpcUrl,
+    return {
+      // Web3Auth Configuration
+      web3AuthClientId: config.web3auth?.clientId || '',
+      web3AuthNetwork: config.web3auth?.network || 'testnet',
       
-      // Chain information
-      chainId: parseInt(config.chains[0].chain.chainId, 16), // Convert hex to decimal
-      chainName: config.chains[0].chain.chainName,
-      currency: config.chains[0].chain.nativeCurrency.symbol,
-      explorer: config.chains[0].chain.blockExplorerUrls[0],
+      // Chain Configuration
+      chainId: NERO_CHAIN_CONFIG.chainId,
+      chainName: NERO_CHAIN_CONFIG.chainName,
+      rpcUrl: NERO_CHAIN_CONFIG.rpcUrl,
+      currency: NERO_CHAIN_CONFIG.currency,
+      explorer: NERO_CHAIN_CONFIG.explorer,
       
-      // Web3Auth configuration
-      web3AuthClientId: config.web3auth.clientId,
+      // Account Abstraction Configuration
+      bundlerRpc: AA_PLATFORM_CONFIG.bundlerRpc,
+      paymasterRpc: AA_PLATFORM_CONFIG.paymasterRpc,
+      paymasterAPIKey: config.aa?.paymasterAPIKey || '',
       
-      // AA Platform configuration
-      bundler: config.aa.bundler,
-      paymaster: config.aa.paymaster,
-      paymasterAPIKey: config.aa.paymasterAPIKey,
+      // Contract Addresses
+      entryPoint: CONTRACT_ADDRESSES.entryPoint,
+      accountFactory: CONTRACT_ADDRESSES.accountFactory,
       
       // Full config object for advanced usage
       fullConfig: config,
     };
-    
-    console.log('useConfig: Processed config:', configData);
-    return configData;
   }, []);
 }; 

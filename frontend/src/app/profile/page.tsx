@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNeroContext } from "@/providers/NeroProvider";
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import { mockUserStats } from '@/data/mockData';
+import { mockUserStats, mockChallenges } from '@/data/mockData';
 
 interface UserProfile {
   id: string;
@@ -54,6 +54,7 @@ export default function ProfilePage() {
   const { user, primaryWallet } = useNeroContext();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
@@ -64,12 +65,19 @@ export default function ProfilePage() {
 
   const isAuthenticated = !!(user || primaryWallet);
 
+  // Hydration protection
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    setIsMounted(true);
+  }, []);
+
+  // Load profile data when component mounts
+  useEffect(() => {
+    if (!isMounted) {
       return;
     }
 
+    console.log('Profile: Loading data');
+    
     // Mock user profile data using centralized stats
     const mockProfile: UserProfile = {
       id: 'user-1',
@@ -79,11 +87,11 @@ export default function ProfilePage() {
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || 'User')}&background=667eea&color=fff&size=120`,
       joinedDate: '2024-03-10',
       lastActive: '2024-03-15',
-      totalTokens: mockUserStats.totalTokens, // Use centralized data
-      challengesCompleted: mockUserStats.challengesCompleted, // Use centralized data
-      currentStreak: mockUserStats.currentStreak, // Use centralized data
+      totalTokens: mockUserStats.totalTokens,
+      challengesCompleted: mockUserStats.challengesCompleted,
+      currentStreak: mockUserStats.currentStreak,
       longestStreak: 12,
-      rank: mockUserStats.rank, // Use centralized data
+      rank: mockUserStats.rank,
       badges: [
         {
           id: '1',
@@ -131,7 +139,7 @@ export default function ProfilePage() {
       emailUpdates: true,
       publicProfile: true
     });
-  }, [isAuthenticated, user, primaryWallet, router]);
+  }, [isMounted, user, primaryWallet]);
 
   const handleSaveProfile = () => {
     if (!profile) return;

@@ -15,25 +15,29 @@ import {
 type TabType = 'overview' | 'active' | 'completed';
 
 export default function DashboardPage() {
-  const { user, primaryWallet } = useNeroContext();
+  const { user, primaryWallet, isLoading, isConnected, walletAddress } = useNeroContext();
   const router = useRouter();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [claimingTokens, setClaimingTokens] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const isAuthenticated = !!(user || primaryWallet);
-
+  // Hydration protection
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    setIsMounted(true);
+  }, []);
+
+  // Load dashboard data when component mounts
+  useEffect(() => {
+    if (!isMounted) {
       return;
     }
 
-    // Use centralized data
+    console.log('Dashboard: Loading data');
     setUserStats(mockUserStats);
     setAllChallenges(mockChallenges);
-  }, [isAuthenticated, user, primaryWallet, router]);
+  }, [isMounted]);
 
   const getUserDisplayName = () => {
     if (user?.firstName) return user.firstName;
@@ -112,20 +116,23 @@ export default function DashboardPage() {
     }
   };
 
-  const activeChallenges = allChallenges.filter(c => !c.completed);
-  const completedChallenges = allChallenges.filter(c => c.completed);
-  const claimableChallenges = completedChallenges.filter(c => c.claimable);
-
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: '📊', count: null },
-    { id: 'active', label: 'Active', icon: '🎯', count: activeChallenges.length },
-    { id: 'completed', label: 'Completed', icon: '✅', count: completedChallenges.length }
-  ];
-
-  if (!isAuthenticated) {
+  // Don't render anything until mounted
+  if (!isMounted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex items-center justify-center">
         <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show loading if we're checking authentication or redirecting
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-white/70">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -137,12 +144,22 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-white/70">Loading dashboard...</p>
+            <p className="text-white/70">Loading dashboard data...</p>
           </div>
         </div>
       </div>
     );
   }
+
+  const activeChallenges = allChallenges.filter(c => !c.completed);
+  const completedChallenges = allChallenges.filter(c => c.completed);
+  const claimableChallenges = completedChallenges.filter(c => c.claimable);
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: '📊', count: null },
+    { id: 'active', label: 'Active', icon: '🎯', count: activeChallenges.length },
+    { id: 'completed', label: 'Completed', icon: '✅', count: completedChallenges.length }
+  ];
 
   const renderTabContent = () => {
     switch (activeTab) {

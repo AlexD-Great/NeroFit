@@ -21,24 +21,24 @@ export default function ChallengesPage() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
   const isAuthenticated = !!(user || primaryWallet);
 
+  // Hydration protection
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    setIsMounted(true);
+  }, []);
+
+  // Load challenges data when component mounts
+  useEffect(() => {
+    if (!isMounted) {
       return;
     }
 
-    // Use centralized data
+    console.log('Challenges: Loading data');
     setChallenges(mockChallenges);
-    
-    // Check for category filter from URL
-    const categoryParam = searchParams.get('category');
-    if (categoryParam) {
-      setSelectedCategory(categoryParam);
-    }
-  }, [isAuthenticated, user, primaryWallet, router, searchParams]);
+  }, [isMounted]);
 
   useEffect(() => {
     let filtered = challenges;

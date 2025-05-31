@@ -46,11 +46,6 @@ export default function ChallengePage() {
   useEffect(() => {
     if (!mounted) return;
 
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
     // Mock challenge data - in real app this would come from API
     const mockChallenges: Record<string, Challenge> = {
       '1': {

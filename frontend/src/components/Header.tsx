@@ -7,15 +7,39 @@ import { useRouter } from 'next/navigation';
 export default function Header() {
   const { user, primaryWallet, setShowAuthFlow, handleLogOut } = useNeroContext();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
 
+  // Debug authentication state
+  console.log('Header: Authentication state:', {
+    user: !!user,
+    primaryWallet: !!primaryWallet,
+    userEmail: user?.email,
+    walletAddress: primaryWallet?.address
+  });
+
   const handleSignOut = async () => {
+    if (isSigningOut) return; // Prevent double-clicks
+    
+    setIsSigningOut(true);
+    setShowUserMenu(false);
+    
     try {
-      await handleLogOut();
-      setShowUserMenu(false);
-      router.push('/');
+      console.log('Header: Starting sign out process...');
+      
+      if (handleLogOut) {
+        await handleLogOut();
+      }
+      
+      console.log('Header: Sign out completed, refreshing page...');
+      
+      // Use page refresh to ensure clean state after logout
+      window.location.href = '/login';
+      
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Header: Error signing out:', error);
+      // Force navigation to login even if logout fails
+      window.location.href = '/login';
     }
   };
 
@@ -103,6 +127,7 @@ export default function Header() {
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center space-x-3 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-all duration-200"
+              disabled={isSigningOut}
             >
               <img
                 src={getUserAvatar()}
@@ -125,7 +150,7 @@ export default function Header() {
             </button>
 
             {/* Dropdown Menu */}
-            {showUserMenu && (
+            {showUserMenu && !isSigningOut && (
               <div className="absolute right-0 mt-2 w-80 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-white/30 shadow-2xl z-50">
                 <div className="p-4">
                   {/* User Info */}
@@ -179,7 +204,9 @@ export default function Header() {
                     {!primaryWallet && (
                       <button
                         onClick={() => {
-                          setShowAuthFlow(true);
+                          if (setShowAuthFlow) {
+                            setShowAuthFlow(true);
+                          }
                           setShowUserMenu(false);
                         }}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
@@ -200,9 +227,17 @@ export default function Header() {
                     
                     <button
                       onClick={handleSignOut}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                      disabled={isSigningOut}
+                      className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
                     >
-                      Sign Out
+                      {isSigningOut ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Signing Out...
+                        </>
+                      ) : (
+                        'Sign Out'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -237,11 +272,22 @@ export default function Header() {
       </div>
 
       {/* Click outside to close menu */}
-      {showUserMenu && (
+      {showUserMenu && !isSigningOut && (
         <div
           className="fixed inset-0 z-40"
           onClick={() => setShowUserMenu(false)}
         />
+      )}
+
+      {/* Signing out overlay */}
+      {isSigningOut && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-gray-900/95 backdrop-blur-xl rounded-xl border border-white/30 p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+            <div className="text-white font-medium">Signing out...</div>
+            <div className="text-white/60 text-sm mt-1">Please wait while we disconnect your wallet</div>
+          </div>
+        </div>
       )}
     </header>
   );

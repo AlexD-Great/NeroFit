@@ -31,16 +31,22 @@ export default function LeaderboardPage() {
   const [timeFilter, setTimeFilter] = useState<'weekly' | 'monthly' | 'all-time'>('all-time');
   const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   const isAuthenticated = !!(user || primaryWallet);
 
+  // Hydration protection
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    setIsMounted(true);
+  }, []);
+
+  // Load leaderboard data when component mounts
+  useEffect(() => {
+    if (!isMounted) {
       return;
     }
 
-    // Use mock data
+    console.log('Leaderboard: Loading data');
     setLeaderboardUsers(mockLeaderboardUsers);
     
     // Set current user rank using centralized data
@@ -60,7 +66,7 @@ export default function LeaderboardPage() {
       };
       setCurrentUserRank(currentUserData);
     }
-  }, [isAuthenticated, user, primaryWallet, router]);
+  }, [isAuthenticated, user, primaryWallet, router, isMounted]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {

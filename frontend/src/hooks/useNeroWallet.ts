@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { useConfig } from './useConfig';
+import { Web3Auth } from '@web3auth/modal';
+import { CHAIN_NAMESPACES, IProvider, WEB3AUTH_NETWORK } from '@web3auth/base';
+import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider';
+import { OpenloginAdapter } from '@web3auth/openlogin-adapter';
 
 export interface NeroWalletState {
   isConnected: boolean;
@@ -14,10 +18,13 @@ export interface NeroWalletState {
   error: string | null;
   signer: ethers.Signer | null;
   isMounted: boolean;
+  loginMethod: 'web3auth' | 'metamask' | null;
 }
 
 export interface NeroWalletActions {
   connect: () => Promise<void>;
+  connectWithGoogle: () => Promise<void>;
+  connectWithMetaMask: () => Promise<void>;
   disconnect: () => Promise<void>;
   getUserInfo: () => Promise<any>;
   getAccounts: () => Promise<string[]>;
@@ -26,7 +33,7 @@ export interface NeroWalletActions {
   sendTransaction: (transaction: any) => Promise<string>;
 }
 
-// Simple wallet connection following NERO's high-level pattern
+// NERO Wallet with Web3Auth integration following their high-level pattern
 export const useNeroWallet = (): NeroWalletState & NeroWalletActions => {
   const config = useConfig();
   
@@ -40,180 +47,276 @@ export const useNeroWallet = (): NeroWalletState & NeroWalletActions => {
     error: null,
     signer: null,
     isMounted: false,
+    loginMethod: null,
   });
+
+  const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
 
   // Hydration protection
   useEffect(() => {
     setState(prev => ({ ...prev, isMounted: true }));
   }, []);
 
+  // Initialize Web3Auth
+  useEffect(() => {
+    if (state.isMounted && config.web3AuthClientId && config.web3AuthClientId !== 'your_web3auth_client_id_here') {
+      initWeb3Auth();
+    }
+  }, [state.isMounted, config.web3AuthClientId]);
+
   // Check if wallet is already connected
   useEffect(() => {
     if (state.isMounted) {
       checkConnection();
     }
-  }, [state.isMounted]);
+  }, [state.isMounted, web3auth]);
 
-  const checkConnection = async () => {
-    if (typeof window === 'undefined' || !window.ethereum) return;
-
+  const initWeb3Auth = async () => {
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
-      if (accounts.length > 0) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-
-        setState(prev => ({
-          ...prev,
-          isConnected: true,
-          walletAddress: address,
-          aaWalletAddress: address, // For now, using same address
-          provider: window.ethereum,
-          signer,
-        }));
+      console.log('NERO Wallet: Initializing Web3Auth...');
+      
+      // Validate client ID
+      if (!config.web3AuthClientId || config.web3AuthClientId === 'your_web3auth_client_id_here') {
+        console.log('NERO Wallet: No valid Web3Auth client ID found, skipping Web3Auth initialization');
+        return;
       }
+      
+      const chainConfig = {
+        chainNamespace: CHAIN_NAMESPACES.EIP155,
+        chainId: `0x${config.chainId.toString(16)}`,
+        rpcTarget: config.rpcUrl,
+        displayName: config.chainName,
+        blockExplorer: config.explorer,
+        ticker: config.currency,
+        tickerName: config.currency,
+      };
+
+      const privateKeyProvider = new EthereumPrivateKeyProvider({
+        config: { chainConfig },
+      });
+
+      const web3AuthInstance = new Web3Auth({
+        clientId: config.web3AuthClientId,
+        web3AuthNetwork: WEB3AUTH_NETWORK.TESTNET,
+        privateKeyProvider,
+        uiConfig: {
+          appName: 'NeroFit',
+          theme: {
+            primary: '#667eea'
+          },
+          mode: 'dark',
+          logoLight: '/favicon.ico',
+          logoDark: '/favicon.ico',
+          defaultLanguage: 'en',
+          loginGridCol: 3,
+          primaryButton: 'socialLogin'
+        },
+      });
+
+      // Configure OpenLogin adapter for social logins
+      const openloginAdapter = new OpenloginAdapter({
+        loginSettings: {
+          mfaLevel: 'optional',
+        },
+        adapterSettings: {
+          uxMode: 'popup',
+          whiteLabel: {
+            appName: 'NeroFit',
+            logoLight: '/favicon.ico',
+            logoDark: '/favicon.ico',
+            defaultLanguage: 'en',
+            mode: 'dark',
+          },
+        },
+      });
+
+      web3AuthInstance.configureAdapter(openloginAdapter);
+      await web3AuthInstance.init();
+      
+      setWeb3auth(web3AuthInstance);
+      console.log('NERO Wallet: Web3Auth initialized successfully');
     } catch (error) {
-      console.error('Error checking connection:', error);
+      console.error('NERO Wallet: Web3Auth initialization failed:', error);
+      // Don't set web3auth to null, just continue without it
+      // MetaMask fallback will be available
     }
   };
 
-  const connect = useCallback(async () => {
-    console.log('NERO Wallet: Connecting...');
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    // Set up timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.error('NERO Wallet: Connection timeout after 45 seconds');
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Connection timeout. Please check MetaMask and try again.',
-      }));
-    }, 45000); // Increased to 45 seconds
-
+  const checkConnection = async () => {
     try {
-      // Check if MetaMask is available
-      if (!window.ethereum) {
-        throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
-      }
-
-      console.log('NERO Wallet: MetaMask detected, version:', window.ethereum.isMetaMask ? 'MetaMask' : 'Unknown');
-
-      console.log('NERO Wallet: Requesting account access...');
-      console.log('NERO Wallet: Please check MetaMask for connection popup...');
+      console.log('NERO Wallet: Checking existing connections...');
       
-      // Add timeout for the account request specifically (longer timeout)
-      const accountRequestPromise = window.ethereum.request({ method: 'eth_requestAccounts' });
-      const accountTimeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('MetaMask connection timeout. Please unlock MetaMask and approve the connection request.')), 30000);
-      });
-
-      const accounts = await Promise.race([accountRequestPromise, accountTimeoutPromise]) as string[];
-      console.log('NERO Wallet: Account access granted, accounts:', accounts);
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts found. Please make sure MetaMask is unlocked and has accounts.');
+      // Check if user just logged out - if so, don't auto-reconnect
+      if (typeof window !== 'undefined') {
+        const logoutFlag = sessionStorage.getItem('nero-logout-flag');
+        const manualLogout = localStorage.getItem('nero-manual-logout');
+        
+        // Prevent auto-reconnection if user manually logged out in this session
+        if (logoutFlag === 'true' || manualLogout === 'true') {
+          console.log('NERO Wallet: Manual logout detected, skipping auto-reconnection');
+          // Clear the session flag but keep manual logout flag until user explicitly connects
+          sessionStorage.removeItem('nero-logout-flag');
+          return;
+        }
       }
-
-      console.log('NERO Wallet: Creating provider and signer...');
-      // Create provider and signer
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      console.log('NERO Wallet: Provider created successfully');
-
-      const signer = await provider.getSigner();
-      console.log('NERO Wallet: Signer created successfully');
-
-      const address = await signer.getAddress();
-      console.log('NERO Wallet: Connected to address:', address);
-
-      // Check current network
-      const network = await provider.getNetwork();
-      console.log('NERO Wallet: Current network:', Number(network.chainId));
-      console.log('NERO Wallet: Target network:', config.chainId);
-
-      // Try to switch to NERO network (but don't fail if it doesn't work)
-      if (Number(network.chainId) !== config.chainId) {
-        console.log('NERO Wallet: Attempting to switch to NERO network...');
+      
+      // Check Web3Auth connection first
+      if (web3auth && web3auth.connected) {
+        console.log('NERO Wallet: Web3Auth appears connected, verifying...');
+        
         try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${config.chainId.toString(16)}` }],
-          });
-          console.log('NERO Wallet: Successfully switched to NERO network');
-        } catch (switchError: any) {
-          console.log('NERO Wallet: Switch failed, attempting to add network...');
-          // If network doesn't exist, try to add it
-          if (switchError.code === 4902) {
+          const web3authProvider = web3auth.provider;
+          if (web3authProvider) {
+            const ethersProvider = new ethers.BrowserProvider(web3authProvider as any);
+            const signer = await ethersProvider.getSigner();
+            const address = await signer.getAddress();
+            const user = await web3auth.getUserInfo();
+
+            console.log('NERO Wallet: Web3Auth connection verified');
+            console.log('Address:', address);
+            console.log('User:', user);
+
+            setState(prev => ({
+              ...prev,
+              isConnected: true,
+              walletAddress: address,
+              aaWalletAddress: address,
+              provider: web3authProvider,
+              signer,
+              user,
+              loginMethod: 'web3auth',
+            }));
+            return;
+          }
+        } catch (error) {
+          console.log('NERO Wallet: Web3Auth connection verification failed:', error);
+          // Clear invalid Web3Auth state
+          if (web3auth && web3auth.connected) {
             try {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: `0x${config.chainId.toString(16)}`,
-                  chainName: config.chainName,
-                  rpcUrls: [config.rpcUrl],
-                  nativeCurrency: {
-                    name: config.currency,
-                    symbol: config.currency,
-                    decimals: 18,
-                  },
-                  blockExplorerUrls: [config.explorer],
-                }],
-              });
-              console.log('NERO Wallet: Successfully added and switched to NERO network');
-            } catch (addError: any) {
-              console.warn('NERO Wallet: Failed to add NERO network, continuing with current network:', addError.message);
-              // Continue anyway - user can manually switch later
+              await web3auth.logout();
+            } catch (logoutError) {
+              console.log('NERO Wallet: Failed to logout invalid Web3Auth session:', logoutError);
             }
-          } else {
-            console.warn('NERO Wallet: Failed to switch network, continuing with current network:', switchError.message);
-            // Continue anyway - user can manually switch later
           }
         }
       }
 
-      // Clear the timeout since we succeeded
-      clearTimeout(timeoutId);
+      // Check MetaMask connection - but only if user previously connected in this session
+      if (typeof window !== 'undefined' && window.ethereum) {
+        console.log('NERO Wallet: Checking MetaMask connection...');
+        
+        // Check if user has a stored connection preference for this session
+        const hasStoredConnection = sessionStorage.getItem('nero-metamask-connected');
+        
+        if (hasStoredConnection) {
+          try {
+            // Use eth_accounts to check if already connected (no prompt)
+            const accounts = await window.ethereum.request({ 
+              method: 'eth_accounts' 
+            }) as string[];
+            
+            console.log('NERO Wallet: MetaMask accounts check result:', accounts);
+            
+            if (accounts.length > 0) {
+              console.log('NERO Wallet: MetaMask accounts found, auto-connecting...');
+              
+              const provider = new ethers.BrowserProvider(window.ethereum);
+              const signer = await provider.getSigner();
+              const address = await signer.getAddress();
 
-      console.log('NERO Wallet: Connection successful!');
+              console.log('NERO Wallet: MetaMask auto-connection successful');
+              console.log('Address:', address);
+
+              setState(prev => ({
+                ...prev,
+                isConnected: true,
+                walletAddress: address,
+                aaWalletAddress: address,
+                provider: window.ethereum,
+                signer,
+                user: { address },
+                loginMethod: 'metamask',
+              }));
+              return;
+            } else {
+              console.log('NERO Wallet: No MetaMask accounts found, clearing stored connection');
+              sessionStorage.removeItem('nero-metamask-connected');
+            }
+          } catch (error) {
+            console.log('NERO Wallet: MetaMask connection check failed:', error);
+            sessionStorage.removeItem('nero-metamask-connected');
+          }
+        } else {
+          console.log('NERO Wallet: No stored MetaMask connection preference found');
+        }
+      }
+
+      console.log('NERO Wallet: No existing connections found');
+    } catch (error) {
+      console.error('NERO Wallet: Error checking connections:', error);
+    }
+  };
+
+  const connectWithGoogle = useCallback(async () => {
+    console.log('NERO Wallet: Starting Google connection...');
+    
+    // Clear manual logout flag since user is explicitly connecting
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nero-manual-logout');
+      sessionStorage.removeItem('nero-logout-flag');
+    }
+    
+    if (!web3auth) {
+      throw new Error('Web3Auth not initialized. Please check your configuration.');
+    }
+
+    if (!config.web3AuthClientId || config.web3AuthClientId === 'your_web3auth_client_id_here') {
+      throw new Error('Web3Auth client ID not configured. Please set NEXT_PUBLIC_WEB3AUTH_CLIENT_ID in your environment variables.');
+    }
+
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      console.log('NERO Wallet: Connecting with Web3Auth...');
+      
+      const web3authProvider = await web3auth.connect();
+      
+      if (!web3authProvider) {
+        throw new Error('Failed to connect with Web3Auth');
+      }
+
+      console.log('NERO Wallet: Web3Auth connected, getting user info...');
+      
+      const ethersProvider = new ethers.BrowserProvider(web3authProvider as any);
+      const signer = await ethersProvider.getSigner();
+      const address = await signer.getAddress();
+      const user = await web3auth.getUserInfo();
+
+      console.log('NERO Wallet: Google connection successful!');
       console.log('Address:', address);
-      console.log('Network:', config.chainName, '(Chain ID:', config.chainId, ')');
+      console.log('User:', user);
 
       setState(prev => ({
         ...prev,
         isConnected: true,
         isLoading: false,
         walletAddress: address,
-        aaWalletAddress: address, // For now, using same address - will be enhanced with proper AA
-        provider: window.ethereum,
+        aaWalletAddress: address,
+        provider: web3authProvider,
         signer,
-        user: { address }, // Simple user object
+        user,
+        loginMethod: 'web3auth',
         error: null,
       }));
 
     } catch (error: any) {
-      // Clear the timeout
-      clearTimeout(timeoutId);
+      console.error('NERO Wallet: Google connection failed:', error);
       
-      console.error('NERO Wallet: Connection failed:', error);
-      
-      let errorMessage = 'Failed to connect wallet';
-      
-      // Provide more specific error messages
-      if (error.message.includes('User rejected') || error.message.includes('User denied')) {
-        errorMessage = 'Connection rejected by user. Please try again and approve the connection.';
-      } else if (error.message.includes('timeout')) {
-        errorMessage = 'Connection timeout. Please unlock MetaMask, check for popups, and try again.';
-      } else if (error.message.includes('MetaMask')) {
+      let errorMessage = 'Failed to connect with Google';
+      if (error.message.includes('User closed the modal') || error.message.includes('User cancelled')) {
+        errorMessage = 'Connection cancelled by user. Please try again.';
+      } else if (error.message) {
         errorMessage = error.message;
-      } else if (error.code === 4001) {
-        errorMessage = 'Connection rejected by user. Please try again and approve the connection.';
-      } else if (error.code === -32002) {
-        errorMessage = 'MetaMask is already processing a request. Please check MetaMask for pending requests.';
-      } else if (error.code === -32603) {
-        errorMessage = 'MetaMask internal error. Please unlock MetaMask and try again.';
-      } else {
-        errorMessage = error.message || 'Failed to connect wallet. Please make sure MetaMask is unlocked.';
       }
 
       setState(prev => ({
@@ -221,23 +324,237 @@ export const useNeroWallet = (): NeroWalletState & NeroWalletActions => {
         isLoading: false,
         error: errorMessage,
       }));
-      // Don't throw the error to prevent unhandled promise rejection
+      
+      throw error;
+    }
+  }, [web3auth, config.web3AuthClientId]);
+
+  const connectWithMetaMask = useCallback(async () => {
+    console.log('NERO Wallet: Starting MetaMask connection...');
+    
+    // Clear manual logout flag since user is explicitly connecting
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nero-manual-logout');
+      sessionStorage.removeItem('nero-logout-flag');
+      console.log('NERO Wallet: Cleared logout flags for explicit connection');
+    }
+    
+    if (!window.ethereum) {
+      const errorMessage = 'MetaMask not detected. Please install MetaMask browser extension.';
+      setState(prev => ({ ...prev, error: errorMessage }));
+      throw new Error(errorMessage);
+    }
+
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Connection timeout. Please unlock MetaMask, check for popups, and try again.',
+      }));
+    }, 45000); // 45 second timeout
+
+    try {
+      console.log('NERO Wallet: Requesting MetaMask accounts...');
+      
+      // Request account access (this will prompt user)
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      }) as string[];
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found. Please unlock MetaMask and try again.');
+      }
+
+      console.log('NERO Wallet: MetaMask accounts received, creating provider...');
+      
+      // Create provider and signer
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+
+      console.log('NERO Wallet: Checking/switching to NERO network...');
+      
+      // Try to switch to NERO network (non-blocking)
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${config.chainId.toString(16)}` }],
+        });
+        console.log('NERO Wallet: Successfully switched to NERO network');
+      } catch (switchError: any) {
+        console.log('NERO Wallet: Network switch failed, attempting to add network...');
+        
+        // If the chain hasn't been added to MetaMask, add it
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: `0x${config.chainId.toString(16)}`,
+                chainName: config.chainName,
+                rpcUrls: [config.rpcUrl],
+                nativeCurrency: {
+                  name: config.currency,
+                  symbol: config.currency,
+                  decimals: 18,
+                },
+                blockExplorerUrls: [config.explorer],
+              }],
+            });
+            console.log('NERO Wallet: Successfully added and switched to NERO network');
+          } catch (addError) {
+            console.log('NERO Wallet: Failed to add network, but continuing with connection:', addError);
+            // Continue with connection even if network switch fails
+          }
+        } else {
+          console.log('NERO Wallet: Network switch failed, but continuing with connection:', switchError);
+          // Continue with connection even if network switch fails
+        }
+      }
+
+      clearTimeout(timeoutId);
+
+      // Store connection preference for auto-reconnection
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('nero-metamask-connected', 'true');
+      }
+
+      console.log('NERO Wallet: MetaMask connection successful!');
+      console.log('Address:', address);
+
+      setState(prev => ({
+        ...prev,
+        isConnected: true,
+        isLoading: false,
+        walletAddress: address,
+        aaWalletAddress: address,
+        provider: window.ethereum,
+        signer,
+        user: { address },
+        loginMethod: 'metamask',
+        error: null,
+      }));
+
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.error('NERO Wallet: MetaMask connection failed:', error);
+      
+      let errorMessage = 'Failed to connect with MetaMask';
+      if (error.message.includes('User rejected') || error.message.includes('User denied')) {
+        errorMessage = 'Connection rejected by user. Please try again and approve the connection.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Connection timeout. Please unlock MetaMask, check for popups, and try again.';
+      } else if (error.code === 4001) {
+        errorMessage = 'Connection rejected by user. Please try again and approve the connection.';
+      } else if (error.code === -32002) {
+        errorMessage = 'MetaMask is already processing a request. Please check MetaMask for pending requests.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage,
+      }));
+      
+      throw error;
     }
   }, [config]);
 
+  // Default connect method (tries Google first if available, then MetaMask)
+  const connect = useCallback(async () => {
+    if (web3auth && config.web3AuthClientId) {
+      await connectWithGoogle();
+    } else {
+      await connectWithMetaMask();
+    }
+  }, [web3auth, config.web3AuthClientId, connectWithGoogle, connectWithMetaMask]);
+
   const disconnect = useCallback(async () => {
     console.log('NERO Wallet: Disconnecting...');
-    setState(prev => ({
-      ...prev,
-      isConnected: false,
-      walletAddress: null,
-      aaWalletAddress: null,
-      provider: null,
-      signer: null,
-      user: null,
-      error: null,
-    }));
-  }, []);
+    
+    try {
+      // Set logout flags to prevent auto-reconnection
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('nero-logout-flag', 'true');
+        localStorage.setItem('nero-manual-logout', 'true');
+        
+        // Clear MetaMask connection preference
+        sessionStorage.removeItem('nero-metamask-connected');
+      }
+      
+      // Clear Web3Auth session
+      if (state.loginMethod === 'web3auth' && web3auth && web3auth.connected) {
+        console.log('NERO Wallet: Logging out from Web3Auth...');
+        try {
+          await web3auth.logout();
+        } catch (logoutError) {
+          console.log('NERO Wallet: Web3Auth logout failed, but continuing:', logoutError);
+        }
+      }
+
+      // For MetaMask, we can't actually disconnect it, but we can clear our state
+      if (state.loginMethod === 'metamask') {
+        console.log('NERO Wallet: Clearing MetaMask connection state...');
+        // Note: We can't actually disconnect MetaMask programmatically
+        // The user would need to disconnect manually in MetaMask
+      }
+
+      // Clear Web3Auth related storage
+      if (typeof window !== 'undefined') {
+        const keysToRemove = [
+          'Web3Auth-cachedAdapter',
+          'openlogin_store',
+          'Web3Auth-walletconnect',
+          'walletconnect',
+          'WALLETCONNECT_DEEPLINK_CHOICE',
+        ];
+        
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        });
+        
+        console.log('NERO Wallet: Cleared Web3Auth storage');
+      }
+
+      // Reset all state immediately
+      setState(prev => ({
+        ...prev,
+        isConnected: false,
+        walletAddress: null,
+        aaWalletAddress: null,
+        provider: null,
+        signer: null,
+        user: null,
+        error: null,
+        loginMethod: null,
+        isLoading: false,
+      }));
+
+      console.log('NERO Wallet: Disconnection complete');
+    } catch (error) {
+      console.error('Error during disconnect:', error);
+      
+      // Force reset state even if logout fails
+      setState(prev => ({
+        ...prev,
+        isConnected: false,
+        walletAddress: null,
+        aaWalletAddress: null,
+        provider: null,
+        signer: null,
+        user: null,
+        error: null,
+        loginMethod: null,
+        isLoading: false,
+      }));
+    }
+  }, [web3auth, state.loginMethod]);
 
   const getUserInfo = async () => {
     if (!state.walletAddress) {
@@ -302,6 +619,8 @@ export const useNeroWallet = (): NeroWalletState & NeroWalletActions => {
   return {
     ...state,
     connect,
+    connectWithGoogle,
+    connectWithMetaMask,
     disconnect,
     getUserInfo,
     getAccounts,
