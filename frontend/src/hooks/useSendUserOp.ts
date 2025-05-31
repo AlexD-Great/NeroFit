@@ -1,75 +1,118 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { ethers } from 'ethers';
+import { Presets, Client } from 'userop';
 import { useConfig } from './useConfig';
 
-// useSendUserOp hook following NERO's high-level documentation pattern
+// useSendUserOp hook following NERO's high-level documentation exactly
 export const useSendUserOp = () => {
-  const config = useConfig();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userOpHash, setUserOpHash] = useState<string | null>(null);
+  const [result, setResult] = useState<any>(null);
+  
+  const config = useConfig();
 
-  // Execute function for write operations following NERO docs
-  const execute = async (operation: any) => {
-    setIsLoading(true);
-    setError(null);
-    setUserOpHash(null);
-
+  const execute = useCallback(async (operation: {
+    signer: ethers.Signer;
+    target: string;
+    data: string;
+    value?: string;
+  }) => {
     try {
-      console.log('Executing UserOperation:', operation);
+      setIsLoading(true);
+      setError(null);
+      setUserOpHash(null);
+      setResult(null);
+
+      const { signer, target, data, value = '0' } = operation;
+
+      // Initialize the SimpleAccount builder
+      const simpleAccount = await Presets.Builder.SimpleAccount.init(
+        signer,
+        config.rpcUrl,
+        {
+          overrideBundlerRpc: config.bundler,
+          entryPoint: config.entryPoint,
+          factory: config.accountFactory,
+        }
+      );
+
+      // Initialize client
+      const client = await Client.init(config.bundler);
+
+      // Set gas parameters
+      const gasParams = {
+        callGasLimit: "0x88b8",
+        verificationGasLimit: "0x33450", 
+        preVerificationGas: "0xc350",
+        maxFeePerGas: "0x2162553062",
+        maxPriorityFeePerGas: "0x40dbcf36",
+      };
+
+      simpleAccount.setCallGasLimit(gasParams.callGasLimit);
+      simpleAccount.setVerificationGasLimit(gasParams.verificationGasLimit);
+      simpleAccount.setPreVerificationGas(gasParams.preVerificationGas);
+      simpleAccount.setMaxFeePerGas(gasParams.maxFeePerGas);
+      simpleAccount.setMaxPriorityFeePerGas(gasParams.maxPriorityFeePerGas);
+
+      // Configure paymaster for sponsored transactions
+      if (config.paymasterAPIKey) {
+        simpleAccount.setPaymasterOptions({
+          apikey: config.paymasterAPIKey,
+          rpc: config.paymaster,
+          type: "0" // Sponsored transaction
+        });
+      }
+
+      // Create the UserOperation
+      const userOp = await simpleAccount.execute(target, value, data);
       
-      // This is where the actual UserOperation execution would happen
-      // For now, we'll simulate the operation
-      // In a real implementation, this would use the NERO AA SDK
+      // Send the UserOperation
+      const res = await client.sendUserOperation(userOp);
+      setUserOpHash(res.userOpHash);
       
-      // Simulate UserOperation hash
-      const mockUserOpHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-      setUserOpHash(mockUserOpHash);
+      console.log("UserOperation sent with hash:", res.userOpHash);
       
-      console.log('UserOperation executed with hash:', mockUserOpHash);
-      return mockUserOpHash;
-      
-    } catch (err: any) {
-      console.error('Error executing UserOperation:', err);
-      setError(err.message || 'Failed to execute UserOperation');
-      throw err;
+      return res.userOpHash;
+    } catch (error: any) {
+      console.error("Error executing UserOperation:", error);
+      setError(error.message || 'Failed to execute operation');
+      throw error;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [config]);
 
-  // Wait for UserOperation result following NERO docs
-  const waitForUserOpResult = async () => {
+  const waitForUserOpResult = useCallback(async () => {
     if (!userOpHash) {
       throw new Error('No UserOperation hash available');
     }
 
     try {
-      console.log('Waiting for UserOperation result:', userOpHash);
+      setIsLoading(true);
       
-      // This would normally wait for the UserOperation to be mined
-      // For now, we'll simulate a successful result
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate wait time
-      
-      const mockResult = {
+      // For now, return the userOpHash as the result
+      // In a full implementation, this would wait for the transaction to be mined
+      const receipt = {
+        userOpHash,
         success: true,
-        receipt: {
-          transactionHash: userOpHash,
-          blockNumber: Math.floor(Math.random() * 1000000),
-          gasUsed: '21000',
-        }
+        blockNumber: 'pending'
       };
       
-      console.log('UserOperation result:', mockResult);
-      return mockResult;
+      console.log("UserOperation submitted:", userOpHash);
+      setResult(receipt);
       
-    } catch (err: any) {
-      console.error('Error waiting for UserOperation result:', err);
-      setError(err.message || 'Failed to get UserOperation result');
-      throw err;
+      return receipt;
+    } catch (error: any) {
+      console.error("Error waiting for UserOperation result:", error);
+      setError(error.message || 'Failed to get operation result');
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [userOpHash]);
 
   return {
     execute,
@@ -77,5 +120,6 @@ export const useSendUserOp = () => {
     isLoading,
     error,
     userOpHash,
+    result,
   };
 }; 
