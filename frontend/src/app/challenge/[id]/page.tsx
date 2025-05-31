@@ -2,7 +2,7 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { useNeroContext } from "@/providers/NeroProvider";
 import { useToast } from '@/providers/ToastProvider';
 import Header from '@/components/Header';
 
@@ -26,7 +26,7 @@ interface Challenge {
 export default function ChallengePage() {
   const params = useParams();
   const router = useRouter();
-  const { user, primaryWallet } = useDynamicContext();
+  const { user, primaryWallet } = useNeroContext();
   const { showSuccess, showError, showInfo } = useToast();
   
   const [challenge, setChallenge] = useState<Challenge | null>(null);

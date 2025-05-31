@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useNeroContext } from './NeroProvider';
 
 interface WalletContextType {
   isConnected: boolean;
@@ -28,8 +29,7 @@ interface WalletProviderProps {
 }
 
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const neroContext = useNeroContext();
   const [fitTokens, setFitTokens] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,67 +48,27 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     }
   }, [API_BASE_URL]);
 
-  const checkWalletConnection = useCallback(async () => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setIsConnected(true);
-          
-          // Store wallet connection state for AuthProvider
-          localStorage.setItem('walletConnected', 'true');
-          localStorage.setItem('walletAddress', accounts[0]);
-          
-          await fetchUserData(accounts[0]);
-        } else {
-          // Clear localStorage if no accounts found
-          localStorage.removeItem('walletConnected');
-          localStorage.removeItem('walletAddress');
-        }
-      } catch (error) {
-        console.error('Error checking wallet connection:', error);
-        localStorage.removeItem('walletConnected');
-        localStorage.removeItem('walletAddress');
-      }
-    }
-  }, [fetchUserData]);
-
-  // Check if wallet is already connected on page load
+  // Sync with NERO wallet state
   useEffect(() => {
-    checkWalletConnection();
-  }, [checkWalletConnection]);
+    if (neroContext.walletAddress) {
+      fetchUserData(neroContext.walletAddress);
+    } else {
+      setFitTokens(0);
+    }
+  }, [neroContext.walletAddress, fetchUserData]);
 
   const connectWallet = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      if (!window.ethereum) {
-        throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
-      }
-
-      // Request account access
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts',
-      }) as string[];
-
-      if (accounts.length === 0) {
-        throw new Error('No accounts found. Please make sure MetaMask is unlocked.');
-      }
-
-      const address = accounts[0];
-      setWalletAddress(address);
-      setIsConnected(true);
+      await neroContext.connect();
       
-      // Store wallet connection state for AuthProvider
-      localStorage.setItem('walletConnected', 'true');
-      localStorage.setItem('walletAddress', address);
-
-      // Register wallet with backend
-      await registerWallet(address);
-      await fetchUserData(address);
-
+      if (neroContext.walletAddress) {
+        // Register wallet with backend
+        await registerWallet(neroContext.walletAddress);
+        await fetchUserData(neroContext.walletAddress);
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet';
       setError(errorMessage);
@@ -118,15 +78,16 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     }
   };
 
-  const disconnectWallet = () => {
-    setIsConnected(false);
-    setWalletAddress(null);
-    setFitTokens(0);
-    setError(null);
-    
-    // Clear wallet connection state from localStorage
-    localStorage.removeItem('walletConnected');
-    localStorage.removeItem('walletAddress');
+  const disconnectWallet = async () => {
+    try {
+      await neroContext.disconnect();
+      setFitTokens(0);
+      setError(null);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to disconnect wallet';
+      setError(errorMessage);
+      console.error('Wallet disconnection error:', err);
+    }
   };
 
   const registerWallet = async (address: string) => {
@@ -152,7 +113,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   };
 
   const claimTokens = async () => {
-    if (!walletAddress) return;
+    if (!neroContext.walletAddress) return;
 
     setIsLoading(true);
     setError(null);
@@ -163,7 +124,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ walletAddress }),
+        body: JSON.stringify({ walletAddress: neroContext.walletAddress }),
       });
 
       if (!response.ok) {
@@ -173,7 +134,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       const data = await response.json();
       
       // Update local token count
-      await fetchUserData(walletAddress);
+      await fetchUserData(neroContext.walletAddress);
       
       console.log('Tokens claimed:', data);
     } catch (err: unknown) {
@@ -186,14 +147,14 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   };
 
   const value: WalletContextType = {
-    isConnected,
-    walletAddress,
+    isConnected: neroContext.isConnected,
+    walletAddress: neroContext.walletAddress,
     fitTokens,
     connectWallet,
     disconnectWallet,
     claimTokens,
-    isLoading,
-    error,
+    isLoading: isLoading || neroContext.isLoading,
+    error: error || neroContext.error,
   };
 
   return (

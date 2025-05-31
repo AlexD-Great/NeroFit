@@ -1,11 +1,11 @@
 "use client";
 
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { useNeroContext } from "@/providers/NeroProvider";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Header() {
-  const { user, primaryWallet, setShowAuthFlow, handleLogOut } = useDynamicContext();
+  const { user, primaryWallet, setShowAuthFlow, handleLogOut } = useNeroContext();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
 
@@ -20,7 +20,7 @@ export default function Header() {
   };
 
   const getUserDisplayName = () => {
-    if (user?.firstName) return user.firstName;
+    if (user?.name) return user.name;
     if (user?.email) return user.email.split('@')[0];
     if (primaryWallet?.address) return `${primaryWallet.address.slice(0, 6)}...${primaryWallet.address.slice(-4)}`;
     return 'User';

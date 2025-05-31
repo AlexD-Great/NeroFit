@@ -1,7 +1,8 @@
 "use client";
 
+import { useNeroContext } from "@/providers/NeroProvider";
+import { useWallet } from "@/providers/WalletProvider";
 import { useState, useEffect } from 'react';
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { 
@@ -14,7 +15,7 @@ import {
 type TabType = 'overview' | 'active' | 'completed';
 
 export default function DashboardPage() {
-  const { user, primaryWallet } = useDynamicContext();
+  const { user, primaryWallet } = useNeroContext();
   const router = useRouter();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);

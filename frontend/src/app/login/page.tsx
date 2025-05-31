@@ -1,19 +1,26 @@
 "use client";
 
-import { DynamicWidget, useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import NeroWidget from "@/components/NeroWidget";
+import { useNeroContext } from "@/providers/NeroProvider";
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function LoginPage() {
-  const { user, primaryWallet } = useDynamicContext();
+  const { user, isConnected, walletAddress } = useNeroContext();
   const router = useRouter();
 
   useEffect(() => {
     // Redirect to dashboard if user is authenticated
-    if (user || primaryWallet) {
+    if (isConnected && (user || walletAddress)) {
+      console.log('Login: User authenticated, redirecting to dashboard');
+      console.log('isConnected:', isConnected, 'user:', user, 'walletAddress:', walletAddress);
       router.push('/dashboard');
     }
-  }, [user, primaryWallet, router]);
+  }, [isConnected, user, walletAddress, router]);
+
+  const handleConnect = () => {
+    console.log('Login: Connection successful, checking redirect...');
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -35,9 +42,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Dynamic Widget */}
+        {/* NERO Widget */}
         <div className="flex justify-center">
-          <DynamicWidget />
+          <NeroWidget onConnect={handleConnect} />
         </div>
 
         {/* Features */}
@@ -88,7 +95,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center">
           <p className="text-white/50 text-sm">
-            Secure authentication powered by Dynamic Labs
+            Secure authentication powered by NERO & Web3Auth
           </p>
         </div>
       </div>

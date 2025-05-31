@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useNeroContext } from "@/providers/NeroProvider";
 import { useRouter } from 'next/navigation';
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
 import { 
   mockLeaderboardUsers, 
@@ -26,7 +26,7 @@ interface LeaderboardUser {
 
 export default function LeaderboardPage() {
   const router = useRouter();
-  const { user, primaryWallet } = useDynamicContext();
+  const { user, primaryWallet } = useNeroContext();
   const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardUser[]>([]);
   const [timeFilter, setTimeFilter] = useState<'weekly' | 'monthly' | 'all-time'>('all-time');
   const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);

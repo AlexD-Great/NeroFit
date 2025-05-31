@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useNeroContext } from "@/providers/NeroProvider";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
 import { 
   mockChallenges, 
@@ -14,7 +14,7 @@ import {
 export default function ChallengesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, primaryWallet } = useDynamicContext();
+  const { user, primaryWallet } = useNeroContext();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [filteredChallenges, setFilteredChallenges] = useState<Challenge[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');

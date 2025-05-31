@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useNeroContext } from "@/providers/NeroProvider";
 import { useRouter } from 'next/navigation';
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
 import { mockUserStats } from '@/data/mockData';
 
@@ -51,7 +51,7 @@ interface WeeklyStats {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, primaryWallet } = useDynamicContext();
+  const { user, primaryWallet } = useNeroContext();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
