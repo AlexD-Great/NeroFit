@@ -109,7 +109,6 @@ export const useNeroWallet = (): UseNeroWalletReturn => {
       const neroChainId = 689; // NERO Chain testnet ID
       
       if (Number(network.chainId) !== neroChainId) {
-        console.log('NERO: Switching to NERO Chain...');
         try {
           // Try to switch to NERO Chain
           await provider.request({
@@ -150,7 +149,6 @@ export const useNeroWallet = (): UseNeroWalletReturn => {
         error: null,
       }));
 
-      console.log('NERO: Successfully connected with Web3Auth');
     } catch (error: any) {
       console.error('NERO: Web3Auth connection failed:', error);
       setState(prev => ({ 
@@ -187,8 +185,6 @@ export const useNeroWallet = (): UseNeroWalletReturn => {
 
   const disconnect = useCallback(async () => {
     try {
-      console.log('NERO: Disconnecting wallet...');
-
       if (web3auth && web3auth.connected) {
         await web3auth.logout();
       }
@@ -213,8 +209,6 @@ export const useNeroWallet = (): UseNeroWalletReturn => {
         isMounted: true,
       });
 
-      console.log('NERO: Wallet disconnected successfully');
-      
       // Force page refresh to ensure clean state
       if (typeof window !== 'undefined') {
         window.location.reload();

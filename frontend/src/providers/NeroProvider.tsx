@@ -38,7 +38,6 @@ export const NeroProvider: React.FC<NeroProviderProps> = ({ children }) => {
   // Legacy compatibility methods
   const setShowAuthFlow = (show: boolean) => {
     // This is a no-op since Web3Auth handles its own modal
-    console.log('setShowAuthFlow called with:', show);
   };
 
   const handleLogOut = async () => {
