@@ -55,7 +55,7 @@ cp .env.example .env.local
 NEXT_PUBLIC_API_URL=https://nerofit.onrender.com
 ```
 
-#### Optional Variables (for enhanced features)
+####  Variables (for enhanced features)
 ```env
 # Web3Auth Configuration for Social Login (Optional)
 # Get your client ID from https://dashboard.web3auth.io/
@@ -163,7 +163,7 @@ frontend/
 - **Multi-Chain**: Automatic NERO testnet configuration
 - **Responsive UI**: Mobile-first wallet connection interface
 
-## Environment Variables
+## Environment Variables (mock - to give you an idea)
 
 | Variable | Description | Required | Example |
 |----------|-------------|----------|---------|
