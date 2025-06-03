@@ -109,22 +109,6 @@ export default function OnboardingPage() {
               Login and start earning rewards today
             </p>
           </div>
-
-          {/* Stats */}
-          <div className="mt-16 grid grid-cols-3 gap-8 max-w-md mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-400">1000+</div>
-              <div className="text-sm text-white/70">Active Users</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-400">50K+</div>
-              <div className="text-sm text-white/70">Tokens Earned</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">24/7</div>
-              <div className="text-sm text-white/70">Challenges</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
