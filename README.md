@@ -18,8 +18,11 @@ npm install
 ### 2. Configure Environment
 Create `frontend/.env.local`:
 ```bash
-# Backend API Configuration - Using deployed Render backend
-NEXT_PUBLIC_BACKEND_URL=https://nerofit.onrender.com
+# NERO Authentication Configuration
+NEXT_PUBLIC_WEB3AUTH_CLIENT_ID=your_web3auth_client_id
+NEXT_PUBLIC_PAYMASTER_API_KEY=your_paymaster_api_key
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+NEXT_PUBLIC_FACEBOOK_CLIENT_ID=your_facebook_oauth_client_id
 
 # Optional optimizations
 NEXT_TELEMETRY_DISABLED=1
@@ -35,7 +38,7 @@ Visit `http://localhost:3000` to access the application.
 ## 🌐 **Backend Information**
 
 The backend is deployed and running on Render at:
-- **API Base URL**: https://nerofit.onrender.com
+- **API Base URL**: https://nerofit.onrender.com (hardcoded as default)
 - **Health Check**: https://nerofit.onrender.com/health
 - **API Documentation**: Available at the base URL
 
@@ -72,7 +75,7 @@ curl -X POST https://nerofit.onrender.com/api/claim-tokens \
 ## 🏗️ **Architecture**
 
 - **Frontend**: Next.js 15 with TypeScript and Tailwind CSS
-- **Backend**: Express.js with CORS enabled for all deployments
+- **Backend**: Express.js with CORS enabled for all deployments (Render)
 - **Blockchain**: Nero testnet integration
 - **Deployment**: Render (backend) + Vercel/Netlify (frontend)
 
@@ -89,8 +92,13 @@ npm run type-check   # TypeScript checking
 
 ### Environment Variables
 The frontend uses these environment variables:
-- `NEXT_PUBLIC_BACKEND_URL` - Backend API URL (defaults to Render URL)
+- `NEXT_PUBLIC_WEB3AUTH_CLIENT_ID` - Web3Auth client ID for NERO authentication
+- `NEXT_PUBLIC_PAYMASTER_API_KEY` - Paymaster API key for gasless transactions
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `NEXT_PUBLIC_FACEBOOK_CLIENT_ID` - Facebook OAuth client ID
 - `NEXT_TELEMETRY_DISABLED` - Disable Next.js telemetry
+
+**Note**: Backend URL is hardcoded to `https://nerofit.onrender.com` and doesn't require configuration.
 
 ## 🚨 **Troubleshooting**
 
@@ -101,9 +109,6 @@ rm -rf frontend/.next
 
 # Reinstall dependencies
 cd frontend && rm -rf node_modules package-lock.json && npm install
-
-# Check environment variables
-cat frontend/.env.local
 ```
 
 ### API Connection Issues
@@ -111,8 +116,8 @@ cat frontend/.env.local
 # Test backend connectivity
 curl https://nerofit.onrender.com/health
 
-# Check if frontend is using correct URL
-grep -r "NEXT_PUBLIC_BACKEND_URL" frontend/
+# The backend URL is hardcoded in the application
+# No environment variable configuration needed
 ```
 
 ## 📊 **Performance**

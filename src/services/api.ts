@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nerofit.onrender.com';
+const API_BASE_URL = 'https://nerofit.onrender.com';
 
 export interface UserData {
   fitTokens: string;

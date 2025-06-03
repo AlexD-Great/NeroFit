@@ -34,7 +34,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nerofit.onrender.com';
+  const API_BASE_URL = 'https://nerofit.onrender.com';
 
   const fetchUserData = useCallback(async (address: string) => {
     try {

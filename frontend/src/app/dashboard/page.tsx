@@ -16,6 +16,7 @@ type TabType = 'overview' | 'active' | 'completed';
 
 export default function DashboardPage() {
   const { user, primaryWallet, isLoading, isConnected, walletAddress } = useNeroContext();
+  const { claimTokens } = useWallet();
   const router = useRouter();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
@@ -80,12 +81,8 @@ export default function DashboardPage() {
         throw new Error('No wallet address found');
       }
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // For development: simulate successful token claiming
-      // TODO: Replace with actual backend call when blockchain connectivity is fixed
-      console.log('Simulating token claim:', { challengeId, reward, walletAddress });
+      // Call the actual API through WalletProvider
+      await claimTokens();
       
       // Update challenge to mark as claimed
       const updatedChallenges = allChallenges.map(challenge => 
@@ -105,7 +102,7 @@ export default function DashboardPage() {
       }
       
       // Show success message
-      alert(`Successfully claimed ${reward} FIT tokens! (Simulated - Backend blockchain connectivity pending)`);
+      alert(`Successfully claimed ${reward} FIT tokens!`);
       
     } catch (error) {
       console.error('Failed to claim tokens:', error);
