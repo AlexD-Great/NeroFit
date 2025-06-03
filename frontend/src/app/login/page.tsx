@@ -21,31 +21,39 @@ export default function LoginPage() {
       return;
     }
 
-    // Check if user is authenticated
-    const isAuthenticated = isConnected && (primaryWallet?.address || walletAddress);
+    // Enhanced authentication check - check multiple indicators
+    const isAuthenticated = !!(
+      user || 
+      primaryWallet?.address || 
+      (isConnected && walletAddress)
+    );
     
     console.log('Login: Authentication check:', {
       isMounted,
       isLoading,
       isConnected,
+      user: !!user,
+      userEmail: user?.email,
+      userName: user?.name,
       primaryWallet: primaryWallet?.address,
       walletAddress,
-      isAuthenticated
+      isAuthenticated,
+      timestamp: new Date().toISOString()
     });
 
     if (isAuthenticated) {
       console.log('Login: User is authenticated, redirecting to dashboard');
-      router.push('/dashboard');
+      // Use replace to prevent back navigation to login page
+      router.replace('/dashboard');
     }
-  }, [isMounted, isConnected, primaryWallet?.address, walletAddress, isLoading, router]);
+  }, [isMounted, isConnected, primaryWallet?.address, walletAddress, isLoading, router, user]);
 
   const handleConnect = useCallback(() => {
-    console.log('Login: Connection callback triggered - refreshing page to ensure proper state');
+    console.log('Login: Connection callback triggered');
     
-    // Simple page refresh after connection to ensure authentication state is properly loaded
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000); // Small delay to allow connection to complete
+    // No need to force refresh - let React handle the state updates
+    // The useEffect above will detect the authentication change and redirect
+    console.log('Login: Waiting for authentication state to update...');
   }, []);
 
   // Don't render anything until mounted

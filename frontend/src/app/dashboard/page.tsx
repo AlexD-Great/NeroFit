@@ -29,16 +29,57 @@ export default function DashboardPage() {
     setIsMounted(true);
   }, []);
 
-  // Load dashboard data when component mounts
+  // Authentication guard - redirect to login if not authenticated
+  useEffect(() => {
+    if (!isMounted || isLoading) {
+      return;
+    }
+
+    const isAuthenticated = !!(
+      user || 
+      primaryWallet || 
+      (isConnected && walletAddress)
+    );
+
+    console.log('Dashboard: Authentication check:', {
+      isMounted,
+      isLoading,
+      isConnected,
+      user: !!user,
+      userEmail: user?.email,
+      primaryWallet: !!primaryWallet,
+      walletAddress: !!walletAddress,
+      isAuthenticated,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!isAuthenticated) {
+      console.log('Dashboard: User not authenticated, redirecting to login');
+      router.replace('/login');
+      return;
+    }
+
+    console.log('Dashboard: User authenticated, loading dashboard data');
+  }, [isMounted, isLoading, user, primaryWallet, isConnected, walletAddress, router]);
+
+  // Load dashboard data when component mounts and user is authenticated
   useEffect(() => {
     if (!isMounted) {
       return;
     }
 
-    console.log('Dashboard: Loading data');
-    setUserStats(mockUserStats);
-    setAllChallenges(mockChallenges);
-  }, [isMounted]);
+    const isAuthenticated = !!(
+      user || 
+      primaryWallet || 
+      (isConnected && walletAddress)
+    );
+
+    if (isAuthenticated) {
+      console.log('Dashboard: Loading data for authenticated user');
+      setUserStats(mockUserStats);
+      setAllChallenges(mockChallenges);
+    }
+  }, [isMounted, user, primaryWallet, isConnected, walletAddress]);
 
   const getUserDisplayName = () => {
     if (user?.firstName) return user.firstName;

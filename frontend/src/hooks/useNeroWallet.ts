@@ -147,7 +147,15 @@ export const useNeroWallet = (): UseNeroWalletReturn => {
         provider: ethersProvider,
         signer,
         error: null,
+        isLoading: false,
       }));
+
+      console.log('NERO: Authentication successful:', {
+        user: !!user,
+        userEmail: user?.email,
+        walletAddress: address,
+        isConnected: true
+      });
 
     } catch (error: any) {
       console.error('NERO: Web3Auth connection failed:', error);
@@ -170,21 +178,29 @@ export const useNeroWallet = (): UseNeroWalletReturn => {
       // Use Web3Auth's built-in modal - this will show all login options
       // including Google, Facebook, Email, SMS, etc.
       await web3auth.connect();
+      
+      // Small delay to ensure Web3Auth state is fully synchronized
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       await handleWeb3AuthConnection(web3auth);
+      
+      console.log('NERO: Connection completed successfully');
+      
     } catch (error: any) {
       console.error('NERO: Web3Auth connection failed:', error);
       setState(prev => ({ 
         ...prev, 
-        error: error.message || 'Failed to connect' 
+        error: error.message || 'Failed to connect',
+        isLoading: false
       }));
       throw error;
-    } finally {
-      setState(prev => ({ ...prev, isLoading: false }));
     }
   }, [web3auth]);
 
   const disconnect = useCallback(async () => {
     try {
+      console.log('NERO: Starting disconnect process...');
+      
       if (web3auth && web3auth.connected) {
         await web3auth.logout();
       }
@@ -209,9 +225,11 @@ export const useNeroWallet = (): UseNeroWalletReturn => {
         isMounted: true,
       });
 
-      // Force page refresh to ensure clean state
+      console.log('NERO: Disconnect completed successfully');
+
+      // Navigate to login instead of forcing refresh
       if (typeof window !== 'undefined') {
-        window.location.reload();
+        window.location.href = '/login';
       }
     } catch (error) {
       console.error('NERO: Error during disconnect:', error);

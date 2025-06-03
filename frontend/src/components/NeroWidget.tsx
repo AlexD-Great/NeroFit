@@ -30,15 +30,26 @@ const NeroWidget: React.FC<NeroWidgetProps> = ({ onConnect }) => {
 
   const handleConnect = async () => {
     try {
+      console.log('NeroWidget: Starting connection...');
+      
       // This will open Web3Auth's built-in modal with all login options
       // including Google, Facebook, Email, SMS, Discord, Twitter, etc.
       await connect();
+      
+      console.log('NeroWidget: Connection successful, calling onConnect callback');
       
       // Call the optional onConnect callback
       if (onConnect) {
         onConnect();
       }
+      
+      // Small delay to ensure state propagation
+      setTimeout(() => {
+        console.log('NeroWidget: State should be updated now');
+      }, 1000);
+      
     } catch (error: any) {
+      console.error('NeroWidget: Connection failed:', error);
       // Connection failed - error is handled by the hook
     }
   };

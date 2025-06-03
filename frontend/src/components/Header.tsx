@@ -5,17 +5,27 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Header() {
-  const { user, primaryWallet, setShowAuthFlow, handleLogOut } = useNeroContext();
+  const { user, primaryWallet, setShowAuthFlow, handleLogOut, isConnected, walletAddress } = useNeroContext();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
+
+  // Enhanced authentication check - check multiple indicators
+  const isAuthenticated = !!(
+    user || 
+    primaryWallet || 
+    (isConnected && walletAddress)
+  );
 
   // Debug authentication state
   console.log('Header: Authentication state:', {
     user: !!user,
     primaryWallet: !!primaryWallet,
+    isConnected,
+    walletAddress: !!walletAddress,
     userEmail: user?.email,
-    walletAddress: primaryWallet?.address
+    primaryWalletAddress: primaryWallet?.address,
+    isAuthenticated
   });
 
   const handleSignOut = async () => {
@@ -55,8 +65,6 @@ export default function Header() {
     const name = getUserDisplayName();
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff&size=40`;
   };
-
-  const isAuthenticated = !!(user || primaryWallet);
 
   if (!isAuthenticated) {
     return (
