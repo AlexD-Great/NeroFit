@@ -55,7 +55,7 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Earn FIT Tokens</h3>
-              <p className="text-white/70">Complete daily challenges and earn cryptocurrency rewards</p>
+              <p className="text-white/70">Complete daily challenges and earn rewards</p>
             </div>
 
             <div className="card text-center">
@@ -74,8 +74,8 @@ export default function OnboardingPage() {
                   <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Gasless Transactions</h3>
-              <p className="text-white/70">Claim rewards without paying gas fees thanks to our paymaster</p>
+              <h3 className="text-xl font-semibold text-white mb-2">Ranked leaderboards!</h3>
+              <p className="text-white/70">See how you rank against other users</p>
             </div>
           </div>
 
