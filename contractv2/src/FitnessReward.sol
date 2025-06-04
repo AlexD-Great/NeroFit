@@ -31,18 +31,29 @@ contract FitnessReward is Ownable, ReentrancyGuard, Pausable {
     event ChallengeUpdated(uint256 rewardAmount, string metaURI);
 
     // Constructor
-    constructor(address _fitToken, uint256 _rewardAmount, string memory _metaURI) Ownable(msg.sender) {
+    constructor(address _fitToken) Ownable(msg.sender) {
         fitToken = IERC20(_fitToken);
-        currentChallenge = Challenge(_rewardAmount, _metaURI);
     }
 
-    // FR-01: Complete a challenge and reward the user
-    function completeChallenge(address user) external nonReentrant whenNotPaused {
-        require(!hasCompletedChallenge[user], "User has already completed the challenge");
-        require(fitToken.transfer(user, currentChallenge.rewardAmount), "Token transfer failed");
+    // function hasCompleted(address user) external view returns (bool) {
+    //     return hasCompletedChallenge[user];
+    // }
 
-        hasCompletedChallenge[user] = true;
-        emit ChallengeCompleted(user, currentChallenge.rewardAmount);
+    // FR-01: Complete a challenge and reward the user
+    function completeChallenge(address user) public whenNotPaused {
+            require(!hasCompleted(user), "User has already completed the challenge");
+
+    
+    uint256 rewardAmount = challenges[0].rewardAmount;
+    require(fitToken.transfer(user, rewardAmount), "Transfer failed");
+    
+   hasCompletedChallenge[user] = true;
+    
+    emit ChallengeCompleted(user, rewardAmount);
+}
+
+function hasCompleted(address user) public view returns (bool) {
+        return hasCompletedChallenge[user];
     }
 
     // FR-02: Set the reward amount and metaURI for the challenge (only owner)
@@ -58,9 +69,7 @@ contract FitnessReward is Ownable, ReentrancyGuard, Pausable {
     }
 
     // FR-04: Check if a user has completed a challenge
-    function hasCompleted(address user) external view returns (bool) {
-        return hasCompletedChallenge[user];
-    }
+    
 
     // FR-05: Pause/unpause the contract (only owner)
     function pause() external onlyOwner {
