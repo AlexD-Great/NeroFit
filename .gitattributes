@@ -1,0 +1,122 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+*.js text
+*.jsx text
+*.ts text
+*.tsx text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.css text
+*.scss text
+*.html text
+*.xml text
+*.svg text
+*.txt text
+*.sql text
+*.sol text
+*.toml text
+
+# Declare files that will always have CRLF line endings on checkout.
+*.bat text eol=crlf
+
+# Declare files that will always have LF line endings on checkout.
+*.sh text eol=lf
+
+# Denote all files that are truly binary and should not be modified.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mov binary
+*.mp4 binary
+*.mp3 binary
+*.flv binary
+*.fla binary
+*.swf binary
+*.gz binary
+*.zip binary
+*.7z binary
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+*.pyc binary
+*.pdf binary
+
+# Solidity files
+*.sol text eol=lf
+
+# Contract artifacts (binary)
+*.bin binary
+*.hex binary
+
+# Documentation
+*.md text diff=markdown
+
+# Config files
+*.json text
+*.toml text
+*.yml text
+*.yaml text
+
+# Scripts
+*.sh text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Docker
+Dockerfile text
+docker-compose*.yml text
+.dockerignore text
+
+# Git
+.gitignore text
+.gitattributes text
+.gitmodules text
+
+# IDE
+.vscode/settings.json text
+.vscode/tasks.json text
+.vscode/launch.json text
+.vscode/extensions.json text
+
+# Package managers
+package.json text
+package-lock.json text
+yarn.lock text
+pnpm-lock.yaml text
+
+# Environment files (should not be committed but if they are, treat as text)
+.env* text
+
+# Logs (should not be committed but if they are, treat as text)
+*.log text
+
+# Temporary files
+*.tmp text
+*.temp text
+
+# Archive files (binary)
+*.tar binary
+*.tar.gz binary
+*.tar.bz2 binary
+*.rar binary
+*.7z binary
+
+# Database files
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Certificate files
+*.pem text
+*.crt text
+*.key text
+*.p12 binary
+*.pfx binary 
