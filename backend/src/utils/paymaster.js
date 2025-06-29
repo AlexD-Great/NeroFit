@@ -1,6 +1,18 @@
 const axios = require('axios');
 const { ethers } = require('ethers');
 const { provider } = require('./ethereum');
+const { Client, Presets } = require('userop');
+
+
+// Chain configuration
+const NERO_RPC_URL = "https://rpc-testnet.nerochain.io";
+const BUNDLER_URL = "https://bundler-testnet.nerochain.io/";
+const PAYMASTER_URL = "https://paymaster-testnet.nerochain.io";
+ 
+// Contract addresses
+const ENTRYPOINT_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
+const ACCOUNT_FACTORY_ADDRESS = "0x9406Cc6185a346906296840746125a0E44976454";
+
 
 // Function to create a gasless transaction using Type 0 Paymaster
 async function createGaslessTransaction(userAddress, contractMethod, params) {

@@ -140,6 +140,7 @@ export default function Header() {
                       {user?.email && (
                         <div className="text-white/60 text-sm">{user.email}</div>
                       )}
+                      {/* AA address can be here  */}
                       {primaryWallet?.address && (
                         <div className="text-white/60 text-xs font-mono">
                           {primaryWallet.address.slice(0, 8)}...{primaryWallet.address.slice(-6)}
