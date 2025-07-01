@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import Header from '@/components/Header';
-import { mockUserStats } from '@/data/mockData';
+import { useUser } from '@/providers/UserProvider';
 
 interface UserProfile {
   id: string;
@@ -52,6 +52,18 @@ interface WeeklyStats {
 export default function ProfilePage() {
   const router = useRouter();
   const { user, primaryWallet } = useDynamicContext();
+  const {
+    user: apiUser,
+    userStats,
+    userBadges,
+    streak,
+    loading,
+    errors,
+    updateUser,
+    fetchUserBadges,
+    fetchStreak
+  } = useUser();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -70,84 +82,81 @@ export default function ProfilePage() {
       return;
     }
 
-    // Mock user profile data using centralized stats
-    const mockProfile: UserProfile = {
-      id: 'user-1',
-      name: user?.firstName || 'Fitness Enthusiast',
-      email: user?.email || 'user@example.com',
-      walletAddress: primaryWallet?.address || '0x0000...0000',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || 'User')}&background=667eea&color=fff&size=120`,
-      joinedDate: '2024-03-10',
-      lastActive: '2024-03-15',
-      totalTokens: mockUserStats.totalTokens, // Use centralized data
-      challengesCompleted: mockUserStats.challengesCompleted, // Use centralized data
-      currentStreak: mockUserStats.currentStreak, // Use centralized data
-      longestStreak: 12,
-      rank: mockUserStats.rank, // Use centralized data
-      badges: [
-        {
-          id: '1',
-          name: 'First Steps',
-          icon: '🌟',
-          description: 'Completed your first challenge',
-          earnedDate: '2024-03-10'
-        },
-        {
-          id: '2',
-          name: 'Strength Builder',
-          icon: '💪',
-          description: 'Completed 5 strength challenges',
-          earnedDate: '2024-03-12'
-        },
-        {
-          id: '3',
-          name: 'Consistency King',
-          icon: '🔥',
-          description: 'Maintained a 5-day streak',
-          earnedDate: '2024-03-14'
-        },
-        {
-          id: '4',
-          name: 'Wellness Warrior',
-          icon: '🧘‍♀️',
-          description: 'Completed 3 wellness challenges',
-          earnedDate: '2024-03-13'
+    // Initialize user data if wallet is connected
+    if (primaryWallet?.address && apiUser?._id) {
+      fetchUserBadges(apiUser._id);
+      fetchStreak(apiUser._id);
+    }
+  }, [isAuthenticated, user, primaryWallet, router, apiUser?._id, fetchUserBadges, fetchStreak]);
+
+  useEffect(() => {
+    if (apiUser && userStats && streak) {
+      // Create profile from API data
+      const apiProfile: UserProfile = {
+        id: apiUser._id,
+        name: apiUser.username || user?.firstName || 'Fitness Enthusiast',
+        email: apiUser.email || user?.email || 'user@example.com',
+        walletAddress: apiUser.walletAddress || primaryWallet?.address || '0x0000...0000',
+        avatar: apiUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(apiUser.username || user?.firstName || 'User')}&background=667eea&color=fff&size=120`,
+        joinedDate: apiUser.dateJoined || '2024-03-10',
+        lastActive: apiUser.lastActive || '2024-03-15',
+        totalTokens: userStats.totalTokens,
+        challengesCompleted: userStats.challengesCompleted,
+        currentStreak: userStats.currentStreak,
+        longestStreak: userStats.longestStreak || 12,
+        rank: userStats.rank,
+        badges: userBadges.map(ub => ({
+          id: ub._id,
+          name: ub.badge.name,
+          icon: ub.badge.icon,
+          description: ub.badge.description,
+          earnedDate: ub.earnedDate
+        })),
+        achievements: [],
+        weeklyStats: {
+          workouts: userStats.weeklyWorkouts || 0,
+          distance: userStats.totalDistance || 0,
+          calories: 0, // Not in current schema
+          minutes: userStats.totalMinutes || 0
         }
-      ],
-      achievements: [],
-      weeklyStats: {
-        workouts: 0,
-        distance: 0,
-        calories: 0,
-        minutes: 0
-      }
-    };
+      };
 
-    setProfile(mockProfile);
-    setEditForm({
-      name: mockProfile.name,
-      email: mockProfile.email,
-      notifications: true,
-      emailUpdates: true,
-      publicProfile: true
-    });
-  }, [isAuthenticated, user, primaryWallet, router]);
+      setProfile(apiProfile);
+      setEditForm({
+        name: apiProfile.name,
+        email: apiProfile.email,
+        notifications: true,
+        emailUpdates: true,
+        publicProfile: true
+      });
+    }
+  }, [apiUser, userStats, userBadges, streak, user, primaryWallet]);
 
-  const handleSaveProfile = () => {
-    if (!profile) return;
+  const handleSaveProfile = async () => {
+    if (!profile || !apiUser?._id) return;
 
-    // Update profile with form data
-    const updatedProfile = {
-      ...profile,
-      name: editForm.name,
-      email: editForm.email
-    };
+    try {
+      // Update user via API
+      await updateUser({
+        username: editForm.name,
+        email: editForm.email
+      });
 
-    setProfile(updatedProfile);
-    setIsEditing(false);
-    
-    // In real app, this would make an API call to save the profile
-    console.log('Profile updated:', updatedProfile);
+      // Update local profile state
+      const updatedProfile = {
+        ...profile,
+        name: editForm.name,
+        email: editForm.email
+      };
+
+      setProfile(updatedProfile);
+      setIsEditing(false);
+
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('Failed to update profile. Please try again.');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -183,7 +192,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!profile) {
+  if (loading.user || loading.stats || loading.badges) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
         <Header />
@@ -197,16 +206,61 @@ export default function ProfilePage() {
     );
   }
 
+  // Show errors if any
+  if (errors.user || errors.stats || errors.badges) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-white mb-4">Something went wrong</h2>
+            <p className="text-white/70 mb-6">
+              {errors.user || errors.stats || errors.badges}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">👤</div>
+            <h2 className="text-2xl font-bold text-white mb-4">Profile Not Found</h2>
+            <p className="text-white/70 mb-6">Unable to load your profile information.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
       <Header />
-      
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Profile Header */}
         <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
-            
+
             {/* Avatar and Basic Info */}
             <div className="flex items-center space-x-6">
               <img
@@ -259,10 +313,10 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
-            
+
             {/* Edit Form */}
             {isEditing && (
               <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
@@ -286,7 +340,7 @@ export default function ProfilePage() {
                       className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
-                  
+
                   {/* Preferences */}
                   <div className="space-y-3">
                     <h4 className="text-white font-medium">Preferences</h4>
@@ -342,15 +396,15 @@ export default function ProfilePage() {
               <h3 className="text-xl font-bold text-white mb-6">📊 Detailed Statistics</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">{mockUserStats.totalDistance}km</div>
+                  <div className="text-2xl font-bold text-blue-400">{userStats?.totalDistance || 0}km</div>
                   <div className="text-white/70 text-sm">Total Distance</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">{mockUserStats.weeklyWorkouts}</div>
+                  <div className="text-2xl font-bold text-purple-400">{userStats?.weeklyWorkouts || 0}</div>
                   <div className="text-white/70 text-sm">Weekly Workouts</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-400">{mockUserStats.totalMinutes}min</div>
+                  <div className="text-2xl font-bold text-green-400">{userStats?.totalMinutes || 0}min</div>
                   <div className="text-white/70 text-sm">Total Minutes</div>
                 </div>
                 <div className="text-center">
@@ -358,7 +412,7 @@ export default function ProfilePage() {
                   <div className="text-white/70 text-sm">Favorite Category</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-400">{(mockUserStats.totalMinutes / 7).toFixed(1)}</div>
+                  <div className="text-2xl font-bold text-yellow-400">{((userStats?.totalMinutes || 0) / 7).toFixed(1)}</div>
                   <div className="text-white/70 text-sm">Daily Average (min)</div>
                 </div>
                 <div className="text-center">
@@ -392,7 +446,7 @@ export default function ProfilePage() {
 
           {/* Right Column */}
           <div className="space-y-8">
-            
+
             {/* Badges */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
               <h3 className="text-xl font-bold text-white mb-6">🏆 Badges</h3>

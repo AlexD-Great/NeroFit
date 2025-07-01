@@ -4,37 +4,85 @@ import { useState, useEffect } from 'react';
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import { 
-  mockChallenges, 
-  mockUserStats, 
-  Challenge, 
-  UserStats 
-} from '@/data/mockData';
+import UserRegistration from '@/components/UserRegistration';
+import { useUser } from '@/providers/UserProvider';
+import { UserChallenge } from '@/lib/api';
 
 type TabType = 'overview' | 'active' | 'completed';
 
 export default function DashboardPage() {
   const { user, primaryWallet } = useDynamicContext();
   const router = useRouter();
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [allChallenges, setAllChallenges] = useState<Challenge[]>([]);
+  const {
+    user: apiUser,
+    userStats,
+    challenges,
+    userChallenges,
+    loading,
+    errors,
+    startChallenge,
+    completeChallenge,
+    claimChallengeReward,
+    updateChallengeProgress,
+    createActivity,
+    fetchUserStats,
+    fetchUserChallenges,
+    fetchChallenges,
+    initializeUser
+  } = useUser();
+
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [claimingTokens, setClaimingTokens] = useState<string | null>(null);
+  const [updatingProgress, setUpdatingProgress] = useState<string | null>(null);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
 
   const isAuthenticated = !!(user || primaryWallet);
 
+  // Only initialize user if not loading and not registered
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
+    if (primaryWallet?.address && !apiUser && !loading.user && !errors.user) {
+      setShowRegistration(true);
+    } else {
+      setShowRegistration(false);
+    }
+  }, [isAuthenticated, user, primaryWallet, router, apiUser, loading.user, errors.user]);
 
-    // Use centralized data
-    setUserStats(mockUserStats);
-    setAllChallenges(mockChallenges);
-  }, [isAuthenticated, user, primaryWallet, router]);
+  // After registration, re-initialize user and fetch data
+  useEffect(() => {
+    if (registrationComplete && primaryWallet?.address) {
+      initializeUser(primaryWallet.address).then(() => {
+        if (apiUser?._id) {
+          fetchUserStats(apiUser._id);
+          fetchUserChallenges(apiUser._id);
+          fetchChallenges();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registrationComplete, primaryWallet?.address]);
+
+  // Fetch user data only if user exists and not registering
+  useEffect(() => {
+    if (apiUser?._id && !showRegistration) {
+      fetchUserStats(apiUser._id);
+      fetchUserChallenges(apiUser._id);
+      fetchChallenges();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiUser?._id, showRegistration]);
+
+  const handleRegistrationComplete = () => {
+    setShowRegistration(false);
+    setRegistrationComplete(true);
+  };
 
   const getUserDisplayName = () => {
+    if (apiUser?.username) return apiUser.username;
     if (user?.firstName) return user.firstName;
     if (user?.email) return user.email.split('@')[0];
     if (primaryWallet?.address) return `${primaryWallet.address.slice(0, 6)}...${primaryWallet.address.slice(-4)}`;
@@ -57,83 +105,57 @@ export default function DashboardPage() {
     return 'text-green-400';
   };
 
-  const handleStartChallenge = (challengeId: string) => {
-    router.push(`/challenge/${challengeId}`);
+  const handleStartChallenge = async (challengeId: string) => {
+    if (!apiUser?._id) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      await startChallenge(challengeId);
+      await createActivity({
+        userId: apiUser._id,
+        type: 'challenge',
+        title: `Started challenge`,
+        description: `Started a new fitness challenge`,
+        reward: 0,
+        icon: '🎯'
+      });
+      router.push(`/challenge/${challengeId}`);
+    } catch (error) {
+      console.error('Failed to start challenge:', error);
+      alert('Failed to start challenge. Please try again.');
+    }
   };
 
   const handleViewAllChallenges = () => {
     router.push('/challenges');
   };
 
-  const handleClaimTokens = async (challengeId: string, reward: number) => {
-    setClaimingTokens(challengeId);
-    
-    try {
-      const walletAddress = primaryWallet?.address;
-      
-      if (!walletAddress) {
-        throw new Error('No wallet address found');
-      }
+  const handleClaimTokens = async (userChallengeId: string, reward: number) => {
+    if (!apiUser?._id) {
+      alert('Please connect your wallet first');
+      return;
+    }
 
-      // Call backend API to claim tokens
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      console.log('Attempting to claim tokens:', { backendUrl, challengeId, reward, walletAddress });
-      
-      const response = await fetch(`${backendUrl}/api/challenges/claim-tokens`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress,
-          challengeId,
-          reward
-        })
+    setClaimingTokens(userChallengeId);
+
+    try {
+      await claimChallengeReward(userChallengeId);
+      await createActivity({
+        userId: apiUser._id,
+        type: 'challenge',
+        title: `Claimed ${reward} FIT tokens`,
+        description: `Successfully claimed tokens from completed challenge`,
+        reward: reward,
+        icon: '💰'
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      // Refresh user stats after claiming
+      await fetchUserStats(apiUser._id);
+      await fetchUserChallenges(apiUser._id);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        console.error('Non-JSON response:', responseText);
-        throw new Error(`Expected JSON response but got: ${contentType}. Response: ${responseText.substring(0, 200)}...`);
-      }
-
-      const result = await response.json();
-      console.log('API response:', result);
-
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to claim tokens');
-      }
-      
-      // Update challenge to mark as claimed
-      const updatedChallenges = allChallenges.map(challenge => 
-        challenge.id === challengeId 
-          ? { ...challenge, claimable: false }
-          : challenge
-      );
-      setAllChallenges(updatedChallenges);
-      
-      // Update user stats
-      if (userStats) {
-        setUserStats({
-          ...userStats,
-          totalTokens: userStats.totalTokens + reward,
-          claimableTokens: userStats.claimableTokens - reward
-        });
-      }
-      
-      // Show success message
-      alert(`Successfully claimed ${reward} FIT tokens! Transaction: ${result.data?.transactionHash || 'N/A'}`);
-      
+      alert(`Successfully claimed ${reward} FIT tokens!`);
     } catch (error) {
       console.error('Failed to claim tokens:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -143,14 +165,52 @@ export default function DashboardPage() {
     }
   };
 
-  const activeChallenges = allChallenges.filter(c => !c.completed);
-  const completedChallenges = allChallenges.filter(c => c.completed);
-  const claimableChallenges = completedChallenges.filter(c => c.claimable);
+  const handleUpdateProgress = async (userChallengeId: string, progress: number) => {
+    if (!apiUser?._id) return;
+
+    setUpdatingProgress(userChallengeId);
+
+    try {
+      await updateChallengeProgress(userChallengeId, progress);
+
+      // If progress reaches 100%, complete the challenge
+      if (progress >= 100) {
+        await completeChallenge(userChallengeId);
+        await createActivity({
+          userId: apiUser._id,
+          type: 'challenge',
+          title: `Completed challenge`,
+          description: `Successfully completed a fitness challenge`,
+          reward: 0,
+          icon: '✅'
+        });
+      }
+
+      // Refresh data
+      await fetchUserStats(apiUser._id);
+      await fetchUserChallenges(apiUser._id);
+    } catch (error) {
+      console.error('Failed to update progress:', error);
+      alert('Failed to update progress. Please try again.');
+    } finally {
+      setUpdatingProgress(null);
+    }
+  };
+
+  // Get user's active and completed challenges
+  const activeUserChallenges = userChallenges.filter(uc => !uc.completed);
+  const completedUserChallenges = userChallenges.filter(uc => uc.completed);
+  const claimableUserChallenges = completedUserChallenges.filter(uc => uc.completed && !uc.claimed);
+
+  // Get challenge details for user challenges
+  const getChallengeDetails = (userChallenge: UserChallenge) => {
+    return challenges.find(c => c._id === userChallenge.challengeId) || userChallenge.challenge;
+  };
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊', count: null },
-    { id: 'active', label: 'Active', icon: '🎯', count: activeChallenges.length },
-    { id: 'completed', label: 'Completed', icon: '✅', count: completedChallenges.length }
+    { id: 'active', label: 'Active', icon: '🎯', count: activeUserChallenges.length },
+    { id: 'completed', label: 'Completed', icon: '✅', count: completedUserChallenges.length }
   ];
 
   if (!isAuthenticated) {
@@ -161,7 +221,11 @@ export default function DashboardPage() {
     );
   }
 
-  if (!userStats) {
+  if (showRegistration) {
+    return <UserRegistration onComplete={handleRegistrationComplete} />;
+  }
+
+  if (loading.user || loading.stats || loading.challenges) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
         <Header />
@@ -175,13 +239,37 @@ export default function DashboardPage() {
     );
   }
 
+  // Show errors if any
+  if (errors.user || errors.stats || errors.challenges) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-white mb-4">Something went wrong</h2>
+            <p className="text-white/70 mb-6">
+              {errors.user || errors.stats || errors.challenges}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
         return (
           <div className="space-y-8">
             {/* Claimable Tokens Alert */}
-            {userStats.claimableTokens > 0 && (
+            {userStats?.claimableTokens && userStats.claimableTokens > 0 && (
               <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 backdrop-blur-lg rounded-xl p-6 border border-yellow-500/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -201,48 +289,115 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Today's Goals */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-              <h3 className="text-xl font-bold text-white mb-6">🎯 Today&apos;s Goals</h3>
-              <div className="space-y-4">
+            {/* User Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
                 <div className="flex items-center justify-between">
-                  <span className="text-white/80">Complete 2 challenges</span>
-                  <span className="text-green-400 font-semibold">1/2</span>
+                  <div>
+                    <p className="text-white/70 text-sm">Total FIT</p>
+                    <p className="text-3xl font-bold text-yellow-400">{userStats?.totalTokens || 0}</p>
+                  </div>
+                  <span className="text-3xl">💰</span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-400 h-2 rounded-full" style={{ width: '50%' }}></div>
-                </div>
-                
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
                 <div className="flex items-center justify-between">
-                  <span className="text-white/80">Earn 50 FIT tokens</span>
-                  <span className="text-yellow-400 font-semibold">{userStats.totalTokens + userStats.claimableTokens}/50</span>
+                  <div>
+                    <p className="text-white/70 text-sm">Challenges</p>
+                    <p className="text-3xl font-bold text-green-400">{userStats?.challengesCompleted || 0}</p>
+                  </div>
+                  <span className="text-3xl">🏆</span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${Math.min(((userStats.totalTokens + userStats.claimableTokens) / 50) * 100, 100)}%` }}></div>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white/70 text-sm">Current Streak</p>
+                    <p className={`text-3xl font-bold ${getStreakColor(userStats?.currentStreak || 0)}`}>
+                      {userStats?.currentStreak || 0}
+                    </p>
+                  </div>
+                  <span className="text-3xl">🔥</span>
+                </div>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white/70 text-sm">Rank</p>
+                    <p className="text-3xl font-bold text-purple-400">#{userStats?.rank || 'N/A'}</p>
+                  </div>
+                  <span className="text-3xl">👑</span>
                 </div>
               </div>
             </div>
 
-            {/* Weekly Progress */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-              <h3 className="text-xl font-bold text-white mb-6">📈 Weekly Progress</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-400">{userStats.weeklyWorkouts}</div>
-                  <div className="text-white/60 text-sm">Workouts</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">{userStats.totalDistance}km</div>
-                  <div className="text-white/60 text-sm">Distance</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-400">{userStats.totalMinutes}min</div>
-                  <div className="text-white/60 text-sm">Active Time</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-400">{userStats.totalTokens}</div>
-                  <div className="text-white/60 text-sm">FIT Claimed</div>
-                </div>
+            {/* Available Challenges */}
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">Available Challenges</h2>
+                <button
+                  onClick={handleViewAllChallenges}
+                  className="text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  View All →
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {challenges.slice(0, 6).map((challenge) => {
+                  const userChallenge = userChallenges.find(uc => uc.challengeId === challenge._id);
+                  const isStarted = !!userChallenge;
+
+                  return (
+                    <div key={challenge._id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-3xl">{challenge.icon}</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(challenge.difficulty)}`}>
+                          {challenge.difficulty}
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-semibold text-white mb-2">{challenge.title}</h3>
+                      <p className="text-white/70 text-sm mb-4">{challenge.description}</p>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-yellow-400 font-semibold">{challenge.reward} FIT</span>
+                        <span className="text-white/60 text-sm">{challenge.estimatedTime}</span>
+                      </div>
+
+                      {isStarted && userChallenge ? (
+                        <div className="space-y-3">
+                          <div className="w-full bg-white/20 rounded-full h-2">
+                            <div
+                              className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${userChallenge.progress}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-white/70">{userChallenge.progress}% complete</span>
+                            <button
+                              onClick={() => handleUpdateProgress(userChallenge._id, Math.min(userChallenge.progress + 25, 100))}
+                              disabled={updatingProgress === userChallenge._id}
+                              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs transition-colors disabled:opacity-50"
+                            >
+                              {updatingProgress === userChallenge._id ? 'Updating...' : 'Update Progress'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleStartChallenge(challenge._id)}
+                          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+                        >
+                          Start Challenge
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -251,64 +406,63 @@ export default function DashboardPage() {
       case 'active':
         return (
           <div className="space-y-6">
-            {activeChallenges.length === 0 ? (
+            {activeUserChallenges.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🎯</div>
-                <h3 className="text-xl font-bold text-white mb-2">No Active Challenges</h3>
-                <p className="text-white/60 mb-6">Start a new challenge to begin earning FIT tokens!</p>
+                <h3 className="text-xl font-semibold text-white mb-2">No Active Challenges</h3>
+                <p className="text-white/70 mb-6">Start a challenge to begin earning FIT tokens!</p>
                 <button
-                  onClick={handleViewAllChallenges}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+                  onClick={() => setActiveTab('overview')}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
                 >
                   Browse Challenges
                 </button>
               </div>
             ) : (
-              activeChallenges.map((challenge) => (
-                <div key={challenge.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-3xl">{challenge.icon}</span>
-                      <div>
-                        <h4 className="text-lg font-bold text-white">{challenge.title}</h4>
-                        <p className="text-white/60 text-sm">{challenge.description}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-yellow-400 font-bold text-lg">{challenge.reward} FIT</div>
-                      <div className={`text-xs px-2 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
-                        {challenge.difficulty}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-white/70">Progress</span>
-                      <span className="text-white/70">{challenge.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${challenge.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeUserChallenges.map((userChallenge) => {
+                  const challenge = getChallengeDetails(userChallenge);
+                  if (!challenge) return null;
 
-                  <div className="flex items-center justify-between">
-                    <div className="text-white/60 text-sm">
-                      <span className="mr-4">⏱️ {challenge.estimatedTime}</span>
-                      <span>📅 {challenge.timeLimit}</span>
+                  return (
+                    <div key={userChallenge._id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-3xl">{challenge.icon}</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(challenge.difficulty)}`}>
+                          {challenge.difficulty}
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-semibold text-white mb-2">{challenge.title}</h3>
+                      <p className="text-white/70 text-sm mb-4">{challenge.description}</p>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-yellow-400 font-semibold">{challenge.reward} FIT</span>
+                        <span className="text-white/60 text-sm">{challenge.estimatedTime}</span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="w-full bg-white/20 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${userChallenge.progress}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-white/70">{userChallenge.progress}% complete</span>
+                          <button
+                            onClick={() => handleUpdateProgress(userChallenge._id, Math.min(userChallenge.progress + 25, 100))}
+                            disabled={updatingProgress === userChallenge._id}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs transition-colors disabled:opacity-50"
+                          >
+                            {updatingProgress === userChallenge._id ? 'Updating...' : 'Update Progress'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleStartChallenge(challenge.id)}
-                      className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm"
-                    >
-                      {challenge.progress > 0 ? 'Continue' : 'Start'}
-                    </button>
-                  </div>
-                </div>
-              ))
+                  );
+                })}
+              </div>
             )}
           </div>
         );
@@ -316,98 +470,62 @@ export default function DashboardPage() {
       case 'completed':
         return (
           <div className="space-y-6">
-            {completedChallenges.length === 0 ? (
+            {completedUserChallenges.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">✅</div>
-                <h3 className="text-xl font-bold text-white mb-2">No Completed Challenges</h3>
-                <p className="text-white/60 mb-6">Complete your first challenge to see it here!</p>
+                <h3 className="text-xl font-semibold text-white mb-2">No Completed Challenges</h3>
+                <p className="text-white/70 mb-6">Complete your first challenge to start earning FIT tokens!</p>
                 <button
-                  onClick={() => setActiveTab('active')}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+                  onClick={() => setActiveTab('overview')}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200"
                 >
-                  View Active Challenges
+                  Browse Challenges
                 </button>
               </div>
             ) : (
-              <div>
-                <div className="mb-6 text-center">
-                  <h3 className="text-2xl font-bold text-white mb-2">🎉 Great Job!</h3>
-                  <p className="text-white/70">
-                    You&apos;ve completed {completedChallenges.length} challenges! 
-                    {claimableChallenges.length > 0 && (
-                      <span className="text-yellow-400 font-semibold">
-                        {' '}Claim {userStats.claimableTokens} FIT tokens below.
-                      </span>
-                    )}
-                  </p>
-                </div>
-                {completedChallenges.map((challenge) => (
-                  <div key={challenge.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 relative">
-                    <div className="absolute top-4 right-4">
-                      <div className={`text-white text-xs px-2 py-1 rounded-full font-semibold ${
-                        challenge.claimable ? 'bg-yellow-500' : 'bg-green-500'
-                      }`}>
-                        {challenge.claimable ? '💰 CLAIMABLE' : '✅ CLAIMED'}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start justify-between mb-4 pr-24">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-3xl">{challenge.icon}</span>
-                        <div>
-                          <h4 className="text-lg font-bold text-white">{challenge.title}</h4>
-                          <p className="text-white/60 text-sm">{challenge.description}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`font-bold text-lg ${challenge.claimable ? 'text-yellow-400' : 'text-green-400'}`}>
-                          {challenge.claimable ? `${challenge.reward} FIT` : `+${challenge.reward} FIT`}
-                        </div>
-                        <div className={`text-xs px-2 py-1 rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
-                          {challenge.difficulty}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-4">
-                      <div className="w-full bg-green-500 rounded-full h-2"></div>
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {completedUserChallenges.map((userChallenge) => {
+                  const challenge = getChallengeDetails(userChallenge);
+                  if (!challenge) return null;
 
-                    <div className="flex items-center justify-between">
-                      <div className="text-white/60 text-sm">
-                        <span className="mr-4">⏱️ {challenge.estimatedTime}</span>
-                        <span className="mr-4">🏆 {challenge.category}</span>
+                  return (
+                    <div key={userChallenge._id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-3xl">{challenge.icon}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-green-400 text-2xl">✅</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(challenge.difficulty)}`}>
+                            {challenge.difficulty}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex space-x-2">
-                        {challenge.claimable && (
-                          <button
-                            onClick={() => handleClaimTokens(challenge.id, challenge.reward)}
-                            disabled={claimingTokens === challenge.id}
-                            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm flex items-center space-x-2"
-                          >
-                            {claimingTokens === challenge.id ? (
-                              <>
-                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                <span>Claiming...</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>💰</span>
-                                <span>Claim {challenge.reward} FIT</span>
-                              </>
-                            )}
-                          </button>
-                        )}
+
+                      <h3 className="text-lg font-semibold text-white mb-2">{challenge.title}</h3>
+                      <p className="text-white/70 text-sm mb-4">{challenge.description}</p>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-yellow-400 font-semibold">{challenge.reward} FIT</span>
+                        <span className="text-white/60 text-sm">
+                          {userChallenge.completedDate ? new Date(userChallenge.completedDate).toLocaleDateString() : 'Completed'}
+                        </span>
+                      </div>
+
+                      {userChallenge.completed && !userChallenge.claimed ? (
                         <button
-                          onClick={() => handleStartChallenge(challenge.id)}
-                          className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 text-sm"
+                          onClick={() => handleClaimTokens(userChallenge._id, challenge.reward)}
+                          disabled={claimingTokens === userChallenge._id}
+                          className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50"
                         >
-                          View Details
+                          {claimingTokens === userChallenge._id ? 'Claiming...' : `Claim ${challenge.reward} FIT`}
                         </button>
-                      </div>
+                      ) : (
+                        <div className="text-center">
+                          <span className="text-green-400 font-semibold">✓ Claimed</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -421,110 +539,47 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4">
             Welcome back, {getUserDisplayName()}! 👋
           </h1>
-          <p className="text-xl text-white/80">Ready to crush your fitness goals today?</p>
+          <p className="text-xl text-white/80">
+            Ready to crush your fitness goals and earn FIT tokens?
+          </p>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-white/70 text-sm font-medium">FIT Tokens</h3>
-              <span className="text-2xl">💰</span>
-              </div>
-            <div className="text-3xl font-bold text-yellow-400 mb-1">{userStats.totalTokens}</div>
-            <div className="text-white/60 text-sm">
-              {userStats.claimableTokens > 0 ? (
-                <span className="text-yellow-400">+{userStats.claimableTokens} claimable</span>
-            ) : (
-                `From ${userStats.challengesCompleted} challenges`
-            )}
-            </div>
-          </div>
-
-          <button
-            onClick={() => setActiveTab('completed')}
-            className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-200 text-left"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-white/70 text-sm font-medium">Challenges</h3>
-              <span className="text-2xl">🏆</span>
-            </div>
-            <div className="text-3xl font-bold text-green-400 mb-1">{userStats.challengesCompleted}</div>
-            <div className="text-white/60 text-sm hover:text-green-400 transition-colors">
-              Completed • Click to view →
-            </div>
-          </button>
-
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-white/70 text-sm font-medium">Current Streak</h3>
-              <span className="text-2xl">🔥</span>
-            </div>
-            <div className={`text-3xl font-bold mb-1 ${getStreakColor(userStats.currentStreak)}`}>
-              {userStats.currentStreak}
-            </div>
-            <div className="text-white/60 text-sm">Days in a row</div>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-white/70 text-sm font-medium">Global Rank</h3>
-              <span className="text-2xl">📊</span>
-            </div>
-            <div className="text-3xl font-bold text-purple-400 mb-1">#{userStats.rank}</div>
-            <div className="text-white/60 text-sm">
-              <button 
-                onClick={() => router.push('/leaderboard')}
-                className="text-purple-400 hover:text-purple-300 transition-colors"
-              >
-                View leaderboard →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-2 border border-white/20">
-            <div className="flex space-x-2">
+        {/* Tabs */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-1 border border-white/20">
+            <div className="flex space-x-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TabType)}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-all duration-200 ${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`}
+                  className={`px-6 py-3 rounded-lg transition-all duration-200 flex items-center space-x-2 ${activeTab === tab.id
+                    ? 'bg-purple-600 text-white'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                    }`}
                 >
-                  <span className="text-lg">{tab.icon}</span>
-                  <span className="font-medium">{tab.label}</span>
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
                   {tab.count !== null && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      activeTab === tab.id ? 'bg-white/20' : 'bg-white/10'
-                    }`}>
+                    <span className="bg-white/20 text-xs px-2 py-1 rounded-full">
                       {tab.count}
                     </span>
                   )}
-            </button>
+                </button>
               ))}
             </div>
           </div>
         </div>
 
         {/* Tab Content */}
-        <div className="mb-8">
-          {renderTabContent()}
-        </div>
-
+        {renderTabContent()}
       </div>
     </div>
   );

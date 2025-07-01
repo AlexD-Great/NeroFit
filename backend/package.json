@@ -4,6 +4,7 @@
   "description": "Backend for Nero Fitness app",
   "main": "src/server.js",
   "scripts": {
+    "build": "echo 'No build step required for backend'",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "check:db": "node scripts/check-mongodb.js",

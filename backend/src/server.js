@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
 // Import routes
 const connectWalletRoute = require("./routes/connect-wallet");
@@ -18,7 +19,21 @@ const tokenTransactionsRoute = require("./routes/token-transactions");
 const badgesRoute = require("./routes/badges");
 const streaksRoute = require("./routes/streaks");
 
+const mongoUri =
+    process.env.MONGODB_URI || "mongodb://localhost:27017/nerofit";
+  console.log(`📡 Attempting to connect to: ${mongoUri}\n`);
+
 const app = express();
+
+
+mongoose
+  .connect(process.env.MONGODB_URI, {})
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((err) => {
+    console.error("Failed to connect to MongoDB", err);
+  });
 // Ensure PORT is properly read from environment
 const PORT = parseInt(process.env.PORT) || 3001;
 console.log(`Using PORT: ${PORT} (from env: ${process.env.PORT})`);
