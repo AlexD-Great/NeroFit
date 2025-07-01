@@ -5,6 +5,8 @@ import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 import { ToastProvider } from "@/providers/ToastProvider";
 import { WalletProvider } from "@/providers/WalletProvider";
 import { useState, useEffect } from "react";
+import { ZeroDevSmartWalletConnectors } from "@dynamic-labs/ethereum-aa";
+
 
 export default function ClientProvider({
   children,
@@ -32,7 +34,7 @@ export default function ClientProvider({
     <DynamicContextProvider
       settings={{
         environmentId: process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID || "c38730b6-370b-4f8d-b43e-ec06c6b8416d",
-        walletConnectors: [EthereumWalletConnectors],
+        walletConnectors: [EthereumWalletConnectors, ZeroDevSmartWalletConnectors],
         appName: "NeroFit",
         appLogoUrl: "/favicon.ico",
         cssOverrides: `
